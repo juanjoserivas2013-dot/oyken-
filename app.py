@@ -4,23 +4,17 @@ from pathlib import Path
 from datetime import date
 
 # =========================
-# CONFIG
+# CONFIGURACIÓN GENERAL
 # =========================
-st.set_page_config(page_title="OYKEN · Ventas", layout="centered")
+st.set_page_config(
+    page_title="OYKEN · Ventas",
+    layout="centered"
+)
+
 st.title("OYKEN · Ventas")
+st.caption("Registro diario de ventas · Prototipo privado")
 
 DATA_FILE = Path("ventas.csv")
-
-# Días en español (sin locale del sistema)
-DAYS_ES = {
-    "Monday": "Lunes",
-    "Tuesday": "Martes",
-    "Wednesday": "Miércoles",
-    "Thursday": "Jueves",
-    "Friday": "Viernes",
-    "Saturday": "Sábado",
-    "Sunday": "Domingo",
-}
 
 # =========================
 # CARGA DE DATOS
@@ -44,8 +38,9 @@ st.subheader("Registro diario")
 with st.form("form_ventas"):
     fecha = st.date_input("Fecha", value=date.today())
 
-    st.caption("Desglose por franja (opcional)")
+    st.caption("Desglose por franja (€)")
     col1, col2, col3 = st.columns(3)
+
     with col1:
         vm = st.number_input("Mañana (€)", min_value=0.0, step=10.0, format="%.2f")
     with col2:
@@ -53,15 +48,22 @@ with st.form("form_ventas"):
     with col3:
         vn = st.number_input("Noche (€)", min_value=0.0, step=10.0, format="%.2f")
 
-    st.caption("O introduce el total directamente")
-    total_manual = st.number_input("Total del día (€)", min_value=0.0, step=10.0, format="%.2f")
+    # Total automático
+    ventas_total = vm + vt + vn
+    st.caption("Total del día (automático)")
+    st.number_input(
+        "Total (€)",
+        value=ventas_total,
+        disabled=True,
+        format="%.2f"
+    )
 
     guardar = st.form_submit_button("Guardar")
 
+# =========================
+# GUARDADO
+# =========================
 if guardar:
-    total_calc = vm + vt + vn
-    ventas_total = total_calc if total_calc > 0 else total_manual
-
     nueva = pd.DataFrame([{
         "fecha": pd.to_datetime(fecha),
         "ventas_manana_eur": vm,
@@ -75,6 +77,7 @@ if guardar:
     df.to_csv(DATA_FILE, index=False)
 
     st.success("Venta guardada correctamente")
+    st.rerun()
 
 st.divider()
 
@@ -84,38 +87,58 @@ st.divider()
 st.subheader("Vista mensual")
 
 if df.empty:
-    st.info("Aún no hay datos.")
+    st.info("Aún no hay datos registrados.")
 else:
     df["año"] = df["fecha"].dt.year
     df["mes"] = df["fecha"].dt.month
     df["dia"] = df["fecha"].dt.day
-    df["dow"] = df["fecha"].dt.day_name().map(DAYS_ES)
+
+    # Día de la semana SIN locale (estable en Streamlit Cloud)
+    dias_es = {
+        "Monday": "Lunes",
+        "Tuesday": "Martes",
+        "Wednesday": "Miércoles",
+        "Thursday": "Jueves",
+        "Friday": "Viernes",
+        "Saturday": "Sábado",
+        "Sunday": "Domingo"
+    }
+    df["dow"] = df["fecha"].dt.day_name().map(dias_es)
 
     col1, col2 = st.columns(2)
+
     with col1:
         años = sorted(df["año"].unique())
-        año_sel = st.selectbox("Año", años, index=len(años) - 1)
+        año_sel = st.selectbox("Año", años, index=len(años)-1)
+
     with col2:
         mes_sel = st.selectbox(
             "Mes",
             list(range(1, 13)),
             format_func=lambda m: [
-                "Enero","Febrero","Marzo","Abril","Mayo","Junio",
-                "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+                "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
             ][m - 1]
         )
 
     mensual = (
         df[(df["año"] == año_sel) & (df["mes"] == mes_sel)]
         .sort_values("fecha")
-        [["fecha","dia","dow",
-          "ventas_manana_eur","ventas_tarde_eur","ventas_noche_eur","ventas_total_eur"]]
+        [[
+            "fecha",
+            "dia",
+            "dow",
+            "ventas_manana_eur",
+            "ventas_tarde_eur",
+            "ventas_noche_eur",
+            "ventas_total_eur"
+        ]]
     )
 
     st.dataframe(mensual, use_container_width=True, hide_index=True)
 
     # =========================
-    # KPIs
+    # TOTALES
     # =========================
     tot_m = mensual["ventas_manana_eur"].sum()
     tot_t = mensual["ventas_tarde_eur"].sum()
