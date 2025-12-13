@@ -8,7 +8,7 @@ from datetime import date
 # =========================
 st.set_page_config(page_title="OYKEN · Ventas", layout="centered")
 st.title("OYKEN · Ventas")
-st.caption("Control operativo diario · Comparativa automática por patrón semanal")
+st.caption("Control operativo diario · Visibilidad · Contexto")
 
 DATA_FILE = Path("ventas.csv")
 
@@ -65,7 +65,7 @@ if guardar:
 
     df = pd.concat([df, nueva], ignore_index=True)
     df = df.drop_duplicates(subset=["fecha"], keep="last")
-    df = df.sort_values("fecha")
+    df = df.sort_values("fecha", ascending=False)
     df.to_csv(DATA_FILE, index=False)
 
     st.success(f"Venta guardada ({fecha.strftime('%d/%m/%Y')})")
@@ -74,23 +74,52 @@ if guardar:
 st.divider()
 
 # =========================
-# COMPARABLE AUTOMÁTICO POR DOW (CORRECTO)
+# LISTADO DE VENTAS (HISTÓRICO VISIBLE)
+# =========================
+st.subheader("Listado de ventas")
+
+if df.empty:
+    st.info("Aún no hay ventas registradas.")
+else:
+    df_listado = df.copy()
+    df_listado["Fecha"] = df_listado["fecha"].dt.strftime("%d/%m/%Y")
+    df_listado["Día"] = df_listado["fecha"].dt.day_name()
+
+    st.dataframe(
+        df_listado[[
+            "Fecha",
+            "Día",
+            "ventas_manana_eur",
+            "ventas_tarde_eur",
+            "ventas_noche_eur",
+            "ventas_total_eur"
+        ]].rename(columns={
+            "ventas_manana_eur": "Mañana (€)",
+            "ventas_tarde_eur": "Tarde (€)",
+            "ventas_noche_eur": "Noche (€)",
+            "ventas_total_eur": "Total (€)"
+        }),
+        use_container_width=True,
+        hide_index=True
+    )
+
+st.divider()
+
+# =========================
+# COMPARABLE AUTOMÁTICO POR DOW
 # =========================
 st.subheader("Lectura automática · Comparativa por día de la semana")
 
 if df.empty:
     st.info("Aún no hay datos suficientes.")
 else:
-    # Día actual = último registrado
     fecha_actual = df["fecha"].max()
-    dow_actual = fecha_actual.weekday()  # lunes = 0
+    dow_actual = fecha_actual.weekday()
 
     actual = df[df["fecha"] == fecha_actual].iloc[0]
 
-    # Fecha objetivo: mismo día calendario, año anterior
     fecha_objetivo = fecha_actual.replace(year=fecha_actual.year - 1)
 
-    # Candidatos: mismo DOW en el año anterior
     candidatos = df[
         (df["fecha"].dt.year == fecha_objetivo.year) &
         (df["fecha"].dt.weekday == dow_actual)
@@ -104,9 +133,6 @@ else:
 
     c1, c2, c3 = st.columns(3)
 
-    # -------------------------
-    # DÍA ACTUAL
-    # -------------------------
     with c1:
         st.markdown("**Día actual**")
         st.write(f"Fecha: {fecha_actual.strftime('%d/%m/%Y')}")
@@ -115,9 +141,6 @@ else:
         st.write(f"Noche: {actual['ventas_noche_eur']:.2f} €")
         st.write(f"**Total: {actual['ventas_total_eur']:.2f} €**")
 
-    # -------------------------
-    # AÑO ANTERIOR · MISMO DOW
-    # -------------------------
     with c2:
         st.markdown("**Mismo día de la semana · Año anterior**")
         if comparable is None:
@@ -129,9 +152,6 @@ else:
             st.write(f"Noche: {comparable['ventas_noche_eur']:.2f} €")
             st.write(f"**Total: {comparable['ventas_total_eur']:.2f} €**")
 
-    # -------------------------
-    # VARIACIÓN
-    # -------------------------
     with c3:
         st.markdown("**Variación**")
         if comparable is None:
