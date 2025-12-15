@@ -202,28 +202,19 @@ with c3:
         unsafe_allow_html=True
     )
 
+
 # =========================
 # BLOQUE OBSERVACIONES OPERATIVAS
 # =========================
 st.divider()
 st.subheader("OBSERVACIONES OPERATIVAS — BITÁCORA DEL DÍA")
-st.caption("Contexto cualitativo que explica el resultado del día y alimenta el histórico Oyken")
 
-if obs_hoy:
-    st.text_area(
-        "Observaciones del día",
-        value=obs_hoy,
-        height=120,
-        disabled=True
-    )
-else:
-    st.text_area(
-        "Observaciones del día",
-        value="",
-        height=120,
-        placeholder="Climatología, eventos, incidencias, promociones, obras, festivos…",
-        disabled=True
-    )
+observaciones_input = st.text_area(
+    "Observaciones del día",
+    value=obs_hoy if obs_hoy else "",
+    height=120,
+    placeholder="Climatología, eventos, incidencias, promociones, obras, festivos…"
+)
 
 # =========================
 # BLOQUE 2 — RESUMEN MENSUAL AUTOMÁTICO
