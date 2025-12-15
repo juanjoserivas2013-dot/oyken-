@@ -133,8 +133,9 @@ else:
     vn_h = fila["ventas_noche_eur"]
     total_h = fila["ventas_total_eur"]
 
-# --- Buscar DOW año anterior ---
+# --- Buscar DOW año anterior (mismo día de la semana más cercano) ---
 fecha_obj = fecha_hoy.replace(year=fecha_hoy.year - 1)
+
 cand = df[
     (df["año"] == fecha_obj.year) &
     (df["fecha"].dt.weekday == fecha_hoy.weekday())
@@ -147,20 +148,26 @@ else:
     cand = cand.copy()
     cand["dist"] = (cand["fecha"] - fecha_obj).abs()
     comp = cand.sort_values("dist").iloc[0]
+
     fecha_a_txt = f"{DOW_ES[comp['fecha'].weekday()]} · {comp['fecha'].strftime('%d/%m/%Y')}"
     vm_a = comp["ventas_manana_eur"]
     vt_a = comp["ventas_tarde_eur"]
     vn_a = comp["ventas_noche_eur"]
     total_a = comp["ventas_total_eur"]
 
+# =========================
+# CÁLCULOS DE VARIACIÓN
+# =========================
 def diff_and_pct(actual, base):
     diff = actual - base
     pct = (diff / base * 100) if base > 0 else 0
     return diff, pct
 
 def color(v):
-    if v > 0: return "green"
-    if v < 0: return "red"
+    if v > 0:
+        return "green"
+    if v < 0:
+        return "red"
     return "gray"
 
 d_vm, p_vm = diff_and_pct(vm_h, vm_a)
@@ -168,6 +175,60 @@ d_vt, p_vt = diff_and_pct(vt_h, vt_a)
 d_vn, p_vn = diff_and_pct(vn_h, vn_a)
 d_tot, p_tot = diff_and_pct(total_h, total_a)
 
+# =========================
+# SEÑALES OPERATIVAS
+# =========================
+
+# Total base seguro
+total_base = total_h if total_h > 0 else 1
+
+# 👀 Turno dominante (≥40% del total HOY)
+dominante = None
+for turno, valor in {
+    "mañana": vm_h,
+    "tarde": vt_h,
+    "noche": vn_h
+}.items():
+    if valor / total_base >= 0.40:
+        dominante = turno
+
+# ↑ Turno que explica la variación (≥50% del impacto total)
+variaciones_abs = {
+    "mañana": abs(d_vm),
+    "tarde": abs(d_vt),
+    "noche": abs(d_vn)
+}
+
+total_var_abs = sum(variaciones_abs.values())
+explica = None
+if total_var_abs > 0:
+    for t, v in variaciones_abs.items():
+        if v / total_var_abs >= 0.50:
+            explica = t
+
+# ⚠ Alertas suaves (caída relevante sin compensación clara)
+alertas = []
+if total_h <= total_a:
+    if p_vm < -10:
+        alertas.append("mañana")
+    if p_vt < -10:
+        alertas.append("tarde")
+    if p_vn < -10:
+        alertas.append("noche")
+
+def iconos(turno):
+    icons = ""
+    if turno == dominante:
+        icons += " 👀"
+    if turno == explica:
+        icons += " ↑"
+    if turno in alertas:
+        icons += " ⚠"
+    return icons
+
+# =========================
+# DISPOSICIÓN VISUAL
+# =========================
 c1, c2, c3 = st.columns(3)
 
 # --- HOY ---
@@ -200,22 +261,27 @@ with c2:
 with c3:
     st.markdown("**VARIACIÓN**")
     st.caption("Vs. DOW año anterior")
+
     st.markdown(
-        f"**Mañana**  "
+        f"**Mañana{iconos('mañana')}**  "
         f"<span style='color:{color(d_vm)}'>{d_vm:+,.2f} € ({p_vm:+.1f}%)</span>",
         unsafe_allow_html=True
     )
+
     st.markdown(
-        f"**Tarde**  "
+        f"**Tarde{iconos('tarde')}**  "
         f"<span style='color:{color(d_vt)}'>{d_vt:+,.2f} € ({p_vt:+.1f}%)</span>",
         unsafe_allow_html=True
     )
+
     st.markdown(
-        f"**Noche**  "
+        f"**Noche{iconos('noche')}**  "
         f"<span style='color:{color(d_vn)}'>{d_vn:+,.2f} € ({p_vn:+.1f}%)</span>",
         unsafe_allow_html=True
     )
+
     st.markdown("---")
+
     st.markdown(
         f"### TOTAL  "
         f"<span style='color:{color(d_tot)}'>{d_tot:+,.2f} € ({p_tot:+.1f}%)</span>",
