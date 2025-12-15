@@ -6,7 +6,7 @@ from datetime import date
 # =========================
 # CONFIGURACIÓN
 # =========================
-st.set_page_config(page_title="OYKEN · Control Operativo", layout="centered")
+st.set_page_config(page_title="OYKEN · Control Ventas Diarias", layout="centered")
 st.title("OYKEN · Control Operativo")
 st.caption("Sistema automático basado en criterio operativo")
 
