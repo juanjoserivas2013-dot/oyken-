@@ -182,7 +182,7 @@ d_tot, p_tot = diff_and_pct(total_h, total_a)
 # Total base seguro
 total_base = total_h if total_h > 0 else 1
 
-# 👀 Turno dominante (≥40% del total HOY)
+# Turno dominante (≥40% del total HOY)👀
 dominante = None
 for turno, valor in {
     "mañana": vm_h,
@@ -192,7 +192,7 @@ for turno, valor in {
     if valor / total_base >= 0.40:
         dominante = turno
 
-# ↑ Turno que explica la variación (≥50% del impacto total)
+# Turno que explica la variación (≥50% del impacto total)↑
 variaciones_abs = {
     "mañana": abs(d_vm),
     "tarde": abs(d_vt),
@@ -206,7 +206,7 @@ if total_var_abs > 0:
         if v / total_var_abs >= 0.50:
             explica = t
 
-# ⚠ Alertas suaves (caída relevante sin compensación clara)
+# Alertas suaves (caída relevante sin compensación clara)⚠
 alertas = []
 if total_h <= total_a:
     if p_vm < -10:
