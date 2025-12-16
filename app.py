@@ -123,24 +123,14 @@ df["weekday"] = df["fecha"].dt.weekday
 df["dow"] = df["weekday"].map(DOW_ES)
 
 # =========================
-# FECHA ACTIVA (ESTADO UI)
-# =========================
-if "fecha_activa" not in st.session_state:
-    st.session_state.fecha_activa = date.today()
-
-# =========================
 # BLOQUE HOY
 # =========================
 st.divider()
 st.subheader("HOY")
 
-# La fecha que MANDA es la fecha activa del registro diario
-fecha_hoy = pd.to_datetime(st.session_state.fecha_activa)
+fecha_hoy = pd.to_datetime(date.today())
 iso_hoy = fecha_hoy.isocalendar()
 
-# =========================
-# DATOS HOY (SEGÚN FECHA ACTIVA)
-# =========================
 venta_hoy = df[df["fecha"] == fecha_hoy]
 
 def fila_o_cero(col):
@@ -149,6 +139,7 @@ def fila_o_cero(col):
 if not venta_hoy.empty:
     fila = venta_hoy.iloc[0]
 
+# --- HOY ---
 vm_h = fila_o_cero("ventas_manana_eur")
 vt_h = fila_o_cero("ventas_tarde_eur")
 vn_h = fila_o_cero("ventas_noche_eur")
@@ -162,9 +153,7 @@ tm_h = fila_o_cero("tickets_manana")
 tt_h = fila_o_cero("tickets_tarde")
 tn_h = fila_o_cero("tickets_noche")
 
-# =========================
-# TICKET MEDIO HOY
-# =========================
+# Ticket medio HOY
 tmed_m_h = vm_h / tm_h if tm_h > 0 else 0
 tmed_t_h = vt_h / tt_h if tt_h > 0 else 0
 tmed_n_h = vn_h / tn_h if tn_h > 0 else 0
@@ -202,9 +191,7 @@ else:
     tt_a = comp["tickets_tarde"]
     tn_a = comp["tickets_noche"]
 
-# =========================
-# TICKET MEDIO DOW
-# =========================
+# Ticket medio DOW
 tmed_m_a = vm_a / tm_a if tm_a > 0 else 0
 tmed_t_a = vt_a / tt_a if tt_a > 0 else 0
 tmed_n_a = vn_a / tn_a if tn_a > 0 else 0
@@ -317,7 +304,9 @@ with c3:
         unsafe_allow_html=True
     )
     st.caption(f"{d_cm:+} comensales · {d_tm:+} tickets")
-    st.caption(f"Ticket medio: {d_tmed_m:+.2f} € ({p_tmed_m:+.1f}%) {icono(p_tmed_m)}")
+    st.caption(
+        f"Ticket medio: {d_tmed_m:+.2f} € ({p_tmed_m:+.1f}%) {icono(p_tmed_m)}"
+    )
 
     st.write("**Tarde**")
     st.markdown(
@@ -325,7 +314,9 @@ with c3:
         unsafe_allow_html=True
     )
     st.caption(f"{d_ct:+} comensales · {d_tt:+} tickets")
-    st.caption(f"Ticket medio: {d_tmed_t:+.2f} € ({p_tmed_t:+.1f}%) {icono(p_tmed_t)}")
+    st.caption(
+        f"Ticket medio: {d_tmed_t:+.2f} € ({p_tmed_t:+.1f}%) {icono(p_tmed_t)}"
+    )
 
     st.write("**Noche**")
     st.markdown(
@@ -333,14 +324,20 @@ with c3:
         unsafe_allow_html=True
     )
     st.caption(f"{d_cn:+} comensales · {d_tn:+} tickets")
-    st.caption(f"Ticket medio: {d_tmed_n:+.2f} € ({p_tmed_n:+.1f}%) {icono(p_tmed_n)}")
+    st.caption(
+        f"Ticket medio: {d_tmed_n:+.2f} € ({p_tmed_n:+.1f}%) {icono(p_tmed_n)}"
+    )
 
     st.markdown("---")
     st.markdown(
-        f"<span style='color:{color(d_tot)}'>TOTAL {d_tot:+,.2f} € ({p_tot:+.1f}%)</span>",
+        f"<span style='color:{color(d_tot)}'>"
+        f" TOTAL {d_tot:+,.2f} € ({p_tot:+.1f}%)"
+        f"</span>",
         unsafe_allow_html=True
     )
-    st.caption(f"Ticket medio: {d_tmed_tot:+.2f} € ({p_tmed_tot:+.1f}%) {icono(p_tmed_tot)}")
+    st.caption(
+        f"Ticket medio: {d_tmed_tot:+.2f} € ({p_tmed_tot:+.1f}%) {icono(p_tmed_tot)}"
+    )
 
 # =========================
 # BITÁCORA DEL MES
