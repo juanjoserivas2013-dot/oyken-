@@ -128,7 +128,7 @@ df["dow"] = df["weekday"].map(DOW_ES)
 st.divider()
 st.subheader("HOY")
 
-fecha_hoy = df["fecha"].max()
+fecha_hoy = pd.to_datetime(st.session_state.fecha_activa)
 iso_hoy = fecha_hoy.isocalendar()
 
 venta_hoy = df[df["fecha"] == fecha_hoy]
