@@ -21,16 +21,9 @@ DOW_ES = {
 
 COLUMNAS = [
     "fecha",
-    "ventas_manana_eur",
-    "ventas_tarde_eur",
-    "ventas_noche_eur",
-    "ventas_total_eur",
-    "comensales_manana",
-    "comensales_tarde",
-    "comensales_noche",
-    "tickets_manana",
-    "tickets_tarde",
-    "tickets_noche",
+    "ventas_manana_eur", "ventas_tarde_eur", "ventas_noche_eur", "ventas_total_eur",
+    "comensales_manana", "comensales_tarde", "comensales_noche",
+    "tickets_manana", "tickets_tarde", "tickets_noche",
     "observaciones"
 ]
 
@@ -44,19 +37,18 @@ else:
 
 for col in COLUMNAS:
     if col not in df.columns:
-        df[col] = 0 if "ventas" in col or "comensales" in col or "tickets" in col else ""
+        df[col] = 0 if col != "observaciones" and col != "fecha" else ""
 
 df["observaciones"] = df["observaciones"].fillna("")
 
 # =========================
-# REGISTRO DIARIO (AMPLIADO)
+# REGISTRO DIARIO
 # =========================
 st.subheader("Registro diario")
 
 with st.form("form_ventas", clear_on_submit=True):
     fecha = st.date_input("Fecha", value=date.today(), format="DD/MM/YYYY")
 
-    # --- VENTAS ---
     st.markdown("**Ventas (€)**")
     v1, v2, v3 = st.columns(3)
     with v1:
@@ -66,7 +58,6 @@ with st.form("form_ventas", clear_on_submit=True):
     with v3:
         vn = st.number_input("Noche", min_value=0.0, step=10.0)
 
-    # --- COMENSALES ---
     st.markdown("**Comensales**")
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -76,7 +67,6 @@ with st.form("form_ventas", clear_on_submit=True):
     with c3:
         cn = st.number_input("Noche ", min_value=0, step=1)
 
-    # --- TICKETS ---
     st.markdown("**Tickets**")
     t1, t2, t3 = st.columns(3)
     with t1:
@@ -86,7 +76,6 @@ with st.form("form_ventas", clear_on_submit=True):
     with t3:
         tn = st.number_input("Noche  ", min_value=0, step=1)
 
-    # --- OBSERVACIONES ---
     observaciones = st.text_area(
         "Observaciones del día",
         placeholder="Clima, eventos, incidencias, promociones, obras, festivos…",
@@ -95,9 +84,6 @@ with st.form("form_ventas", clear_on_submit=True):
 
     guardar = st.form_submit_button("Guardar venta")
 
-# =========================
-# GUARDADO
-# =========================
 if guardar:
     total = vm + vt + vn
 
@@ -119,6 +105,68 @@ if guardar:
     df = pd.concat([df, nueva], ignore_index=True)
     df = df.drop_duplicates(subset=["fecha"], keep="last")
     df.to_csv(DATA_FILE, index=False)
-
     st.success("Venta guardada correctamente")
     st.rerun()
+
+if df.empty:
+    st.info("Aún no hay ventas registradas.")
+    st.stop()
+
+# =========================
+# PREPARACIÓN ISO
+# =========================
+df = df.sort_values("fecha")
+iso = df["fecha"].dt.isocalendar()
+df["iso_year"] = iso.year
+df["iso_week"] = iso.week
+df["weekday"] = df["fecha"].dt.weekday
+df["dow"] = df["weekday"].map(DOW_ES)
+
+# =========================
+# BLOQUE HOY
+# =========================
+st.divider()
+st.subheader("HOY")
+
+fecha_hoy = pd.to_datetime(date.today())
+iso_hoy = fecha_hoy.isocalendar()
+
+venta_hoy = df[df["fecha"] == fecha_hoy]
+
+if venta_hoy.empty:
+    vm_h = vt_h = vn_h = total_h = 0.0
+    cm_h = ct_h = cn_h = 0
+    tm_h = tt_h = tn_h = 0
+else:
+    fila = venta_hoy.iloc[0]
+    vm_h = fila["ventas_manana_eur"]
+    vt_h = fila["ventas_tarde_eur"]
+    vn_h = fila["ventas_noche_eur"]
+    total_h = fila["ventas_total_eur"]
+    cm_h = fila["comensales_manana"]
+    ct_h = fila["comensales_tarde"]
+    cn_h = fila["comensales_noche"]
+    tm_h = fila["tickets_manana"]
+    tt_h = fila["tickets_tarde"]
+    tn_h = fila["tickets_noche"]
+
+c1, c2, c3 = st.columns(3)
+
+with c1:
+    st.markdown("**HOY**")
+    st.caption(f"{DOW_ES[fecha_hoy.weekday()]} · {fecha_hoy.strftime('%d/%m/%Y')}")
+
+    st.write("**Mañana**")
+    st.write(f"{vm_h:,.2f} €")
+    st.caption(f"{cm_h} comensales · {tm_h} tickets")
+
+    st.write("**Tarde**")
+    st.write(f"{vt_h:,.2f} €")
+    st.caption(f"{ct_h} comensales · {tt_h} tickets")
+
+    st.write("**Noche**")
+    st.write(f"{vn_h:,.2f} €")
+    st.caption(f"{cn_h} comensales · {tn_h} tickets")
+
+    st.markdown("---")
+    st.markdown(f"### TOTAL HOY\n{total_h:,.2f} €")
