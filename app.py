@@ -209,7 +209,9 @@ def color(v):
     return "green" if v > 0 else "red" if v < 0 else "gray"
 
 def icono(p):
-    if p >= 25:
+    if p <= -25:
+        return "⚠️"
+    if p >= 30:
         return "👁️"
     if p > 0:
         return "⬆️"
