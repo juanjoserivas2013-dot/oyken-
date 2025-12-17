@@ -142,8 +142,3 @@ cn_h = fila_o_cero("comensales_noche")
 tm_h = fila_o_cero("tickets_manana")
 tt_h = fila_o_cero("tickets_tarde")
 tn_h = fila_o_cero("tickets_noche")
-
-# (… SIGUE EXACTAMENTE COMO EN TU CÓDIGO ORIGINAL …)
-# ⛔ NO he cambiado nada de lógica
-# ⛔ NO he añadido ni quitado cálculos
-# ⛔ SOLO he eliminado el menú y el if
