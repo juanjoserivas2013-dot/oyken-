@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from pathlib import Path
+from datetime import date
 
 # =========================
 # CABECERA
@@ -21,9 +22,7 @@ if not DATA_FILE.exists():
 df = pd.read_csv(DATA_FILE, parse_dates=["fecha"])
 df = df.sort_values("fecha")
 
-if len(df) < 14:
-    st.warning("Se necesitan al menos 14 días de datos para Tendencias.")
-    st.stop()
+hoy = pd.to_datetime(date.today())
 
 # =========================
 # VARIABLES BASE
@@ -40,128 +39,194 @@ df["ticket_medio"] = np.where(
     np.nan
 )
 
-# Ventana dinámica desde HOY hacia atrás
-df_30 = df.tail(30)
+# =========================
+# SEMANA ISO EN CURSO (LUNES → HOY)
+# =========================
+lunes_semana = hoy - pd.Timedelta(days=hoy.weekday())
+df_semana = df[(df["fecha"] >= lunes_semana) & (df["fecha"] <= hoy)]
+
+# =========================
+# VENTANAS AMPLIADAS
+# =========================
+df_7 = df[df["fecha"] <= hoy].tail(7)
+df_10 = df[df["fecha"] <= hoy].tail(10)
+df_14 = df[df["fecha"] <= hoy].tail(14)
+df_15 = df[df["fecha"] <= hoy].tail(15)
 
 # =========================
 # 1. DIRECCIÓN DEL NEGOCIO
 # =========================
-df_30["mm7"] = df_30["ventas_total_eur"].rolling(7).mean()
-mm7_actual = df_30["mm7"].iloc[-1]
-mm7_prev = df_30["mm7"].iloc[-8] if len(df_30) >= 14 else np.nan
-mm7_var = ((mm7_actual - mm7_prev) / mm7_prev * 100) if mm7_prev > 0 else 0
-
 st.subheader("Dirección del negocio")
 
-c1, c2, c3 = st.columns(3)
+if len(df_semana) >= 5:
+    mm_actual = df_semana["ventas_total_eur"].mean()
+    prev = df[(df["fecha"] < lunes_semana)].tail(len(df_semana))
 
-with c1:
+    if len(prev) >= len(df_semana):
+        mm_prev = prev["ventas_total_eur"].mean()
+        var_mm = ((mm_actual - mm_prev) / mm_prev * 100) if mm_prev > 0 else 0
+    else:
+        var_mm = 0
+
     st.metric(
-        "Media móvil 7 días",
-        f"{mm7_actual:,.0f} €",
-        f"{mm7_var:+.1f} %"
+        "Media diaria semana en curso",
+        f"{mm_actual:,.0f} €",
+        f"{var_mm:+.1f} %"
     )
+else:
+    st.info("Semana en curso aún sin datos suficientes.")
+
+st.divider()
 
 # =========================
 # 2. CONSISTENCIA DEL RESULTADO
 # =========================
-cv_ventas = df_30["ventas_total_eur"].std() / df_30["ventas_total_eur"].mean()
+st.subheader("Consistencia del resultado")
 
-with c2:
+if len(df_7) >= 7:
+    cv_ventas = df_7["ventas_total_eur"].std() / df_7["ventas_total_eur"].mean()
     st.metric(
-        "Consistencia del resultado",
-        f"{(1 - cv_ventas)*100:.1f} %",
-        "Inestable" if cv_ventas > 0.30 else "Estable"
+        "Coeficiente de variación de ventas (7 días)",
+        f"{cv_ventas*100:.1f} %"
     )
+else:
+    cv_ventas = np.nan
+    st.info("Consistencia requiere al menos 7 días.")
+
+st.divider()
 
 # =========================
-# 3. DEPENDENCIA DE PICOS
+# 3. DÍAS FUERTES Y DÉBILES
 # =========================
-media = df_30["ventas_total_eur"].mean()
-desv = df_30["ventas_total_eur"].std()
+st.subheader("Días fuertes y días débiles")
 
-picos = df_30[df_30["ventas_total_eur"] > media + 2 * desv]
-pct_picos = (
-    picos["ventas_total_eur"].sum()
-    / df_30["ventas_total_eur"].sum()
-    * 100
-)
+if len(df_15) >= 15:
+    df_15["weekday"] = df_15["fecha"].dt.day_name()
+    media_dia = df_15.groupby("weekday")["ventas_total_eur"].mean()
+    media_global = df_15["ventas_total_eur"].mean()
 
-with c3:
-    st.metric(
-        "Dependencia de picos",
-        f"{pct_picos:.1f} %",
-        "Dependiente" if pct_picos > 35 else "Controlada"
-    )
+    dia_fuerte = media_dia.idxmax()
+    dia_debil = media_dia.idxmin()
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.metric(
+            "Día más fuerte",
+            dia_fuerte,
+            f"{(media_dia.max()/media_global - 1)*100:+.0f} %"
+        )
+    with c2:
+        st.metric(
+            "Día más débil",
+            dia_debil,
+            f"{(media_dia.min()/media_global - 1)*100:+.0f} %"
+        )
+else:
+    st.info("Se requieren al menos 15 días para identificar días fuertes y débiles.")
 
 st.divider()
 
 # =========================
 # 4. ESTABILIDAD DEL TICKET MEDIO
 # =========================
-cv_ticket = df_30["ticket_medio"].std() / df_30["ticket_medio"].mean()
+st.subheader("Estabilidad del ticket medio")
 
-c4, c5 = st.columns(2)
-
-with c4:
-    st.subheader("Estabilidad del ticket medio")
+if len(df_7) >= 7:
+    cv_ticket = df_7["ticket_medio"].std() / df_7["ticket_medio"].mean()
     st.metric(
-        "CV Ticket medio",
-        f"{cv_ticket*100:.1f} %",
-        "Inestable" if cv_ticket > 0.25 else "Estable"
+        "Coeficiente de variación del ticket medio (7 días)",
+        f"{cv_ticket*100:.1f} %"
     )
-
-# =========================
-# 5. VOLATILIDAD POR TURNOS (TABLA)
-# =========================
-def cv_turno(ventas, tickets):
-    tm = np.where(tickets > 0, ventas / tickets, np.nan)
-    return np.nanstd(tm) / np.nanmean(tm)
-
-tabla_turnos = pd.DataFrame({
-    "Turno": ["Mañana", "Tarde", "Noche"],
-    "CV Ticket (%)": [
-        round(cv_turno(df_30["ventas_manana_eur"], df_30["tickets_manana"]) * 100, 1),
-        round(cv_turno(df_30["ventas_tarde_eur"], df_30["tickets_tarde"]) * 100, 1),
-        round(cv_turno(df_30["ventas_noche_eur"], df_30["tickets_noche"]) * 100, 1)
-    ]
-})
-
-with c5:
-    st.subheader("Volatilidad por turno")
-    st.table(tabla_turnos)
+else:
+    cv_ticket = np.nan
+    st.info("Estabilidad del ticket requiere al menos 7 días.")
 
 st.divider()
 
 # =========================
-# 6. SEÑALES DE CALIDAD OPERATIVA
+# 5. VOLATILIDAD POR TURNOS
+# =========================
+st.subheader("Volatilidad por turnos")
+
+def cv_turno(ventas, tickets):
+    tm = np.where(tickets > 0, ventas / tickets, np.nan)
+    return np.nanstd(tm) / np.nanmean(tm)
+
+if len(df_7) >= 7:
+    tabla_turnos = pd.DataFrame({
+        "Turno": ["Mañana", "Tarde", "Noche"],
+        "CV Ticket (%)": [
+            round(cv_turno(df_7["ventas_manana_eur"], df_7["tickets_manana"]) * 100, 1),
+            round(cv_turno(df_7["ventas_tarde_eur"], df_7["tickets_tarde"]) * 100, 1),
+            round(cv_turno(df_7["ventas_noche_eur"], df_7["tickets_noche"]) * 100, 1)
+        ]
+    })
+    st.table(tabla_turnos)
+else:
+    tabla_turnos = None
+    st.info("Volatilidad por turnos requiere al menos 7 días.")
+
+st.divider()
+
+# =========================
+# 6. DEPENDENCIA DE PICOS
+# =========================
+st.subheader("Dependencia de picos")
+
+if len(df_10) >= 10:
+    media = df_10["ventas_total_eur"].mean()
+    desv = df_10["ventas_total_eur"].std()
+
+    picos = df_10[df_10["ventas_total_eur"] > media + 2 * desv]
+    pct_picos = (
+        picos["ventas_total_eur"].sum()
+        / df_10["ventas_total_eur"].sum()
+        * 100
+    )
+
+    st.metric(
+        "Ventas concentradas en días excepcionalmente altos",
+        f"{pct_picos:.1f} %"
+    )
+else:
+    pct_picos = np.nan
+    st.info("Dependencia de picos requiere al menos 10 días.")
+
+st.divider()
+
+# =========================
+# 7. SEÑALES DE CALIDAD OPERATIVA
 # =========================
 st.subheader("Señales de calidad operativa")
 
-if cv_ticket > 0.25:
-    st.write("⚠️ Ticket medio inestable")
-else:
-    st.write("🟢 Ticket medio estable")
+if not np.isnan(cv_ticket):
+    if cv_ticket > 0.25:
+        st.write("⚠️ Variabilidad elevada en el ticket medio")
+    else:
+        st.write("🟢 Ticket medio estable")
 
-if cv_ventas > 0.30:
-    st.write("⚠️ Ventas inconsistentes")
-else:
-    st.write("🟢 Ventas consistentes")
+if not np.isnan(pct_picos):
+    if pct_picos > 45:
+        st.write("🔴 Alta dependencia de picos de venta")
+    elif pct_picos > 30:
+        st.write("⚠️ Dependencia moderada de picos")
+    else:
+        st.write("🟢 Dependencia de picos baja")
 
-if pct_picos > 35:
-    st.write("⚠️ Dependencia elevada de picos")
-else:
-    st.write("🟢 Dependencia de picos baja")
+if tabla_turnos is not None:
+    tarde_cv = tabla_turnos.loc[
+        tabla_turnos["Turno"] == "Tarde", "CV Ticket (%)"
+    ].values[0]
 
-if tabla_turnos.loc[tabla_turnos["Turno"] == "Noche", "CV Ticket (%)"].values[0] > 30:
-    st.write("⚠️ Turno noche volátil")
-else:
-    st.write("🟢 Turno noche bajo control")
+    if tarde_cv > 30:
+        st.write("⚠️ Variabilidad elevada en turno tarde")
+    else:
+        st.write("🟢 Turnos bajo control")
 
 # =========================
 # NOTA DE SISTEMA
 # =========================
 st.caption(
-    "Este bloque evalúa estabilidad y robustez. "
-    "No interpreta causas ni propone acciones."
+    "Este bloque analiza tendencias estructurales. "
+    "Las decisiones se priorizan en Calidad Operativa."
 )
