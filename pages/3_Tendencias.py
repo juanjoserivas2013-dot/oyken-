@@ -22,7 +22,7 @@ df = pd.read_csv(DATA_FILE, parse_dates=["fecha"])
 df = df.sort_values("fecha")
 
 if len(df) < 14:
-    st.warning("Se necesitan al menos 14 días de datos para Tendencias.")
+    st.warning("Se necesitan al menos 7 días de datos para Tendencias.")
     st.stop()
 
 # =========================
