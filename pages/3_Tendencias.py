@@ -1,180 +1,177 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-from datetime import date, timedelta
 
-# =========================
-# CONFIG
-# =========================
+# ===============================
+# CONFIGURACIÓN 
+# ===============================
 
-st.title("📊 OIKEN · Tendencias")
-st.caption("Radar de dirección, consistencia y estructura del negocio")
+st.title("OIKEN · Tendencias")
+st.caption("Dirección, consistencia y estructura del negocio")
 
 DATA_FILE = Path("ventas.csv")
 
-# =========================
+# ===============================
 # CARGA DE DATOS
-# =========================
+# ===============================
+
 if not DATA_FILE.exists():
-    st.warning("No hay datos suficientes para analizar tendencias.")
+    st.error("No se encuentra el archivo ventas.csv")
     st.stop()
 
 df = pd.read_csv(DATA_FILE, parse_dates=["fecha"])
 df = df.sort_values("fecha")
 
-if df.empty:
-    st.stop()
-
-# =========================
-# PREPARACIÓN BASE
-# =========================
+df["dow"] = df["fecha"].dt.dayofweek
 df["week"] = df["fecha"].dt.isocalendar().week
-df["year"] = df["fecha"].dt.isocalendar().year
-df["dow"] = df["fecha"].dt.weekday  # 0=lunes
-df["ventas"] = df["ventas_total_eur"]
+df["year"] = df["fecha"].dt.year
 
-# Semana actual
-hoy = pd.to_datetime(date.today())
-week_actual = hoy.isocalendar().week
-year_actual = hoy.isocalendar().year
+df["ventas_total"] = (
+    df["ventas_manana_eur"]
+    + df["ventas_tarde_eur"]
+    + df["ventas_noche_eur"]
+)
 
-df_semana = df[
-    (df["week"] == week_actual) &
-    (df["year"] == year_actual)
-]
+# ===============================
+# BLOQUE 1 · DIRECCIÓN DEL NEGOCIO
+# ===============================
 
-# =========================
-# BLOQUE 1 · DIRECCIÓN
-# =========================
 st.subheader("Dirección del negocio")
 
-df_mm = df.copy()
-df_mm["mm7"] = df_mm["ventas"].rolling(7).mean()
+media_7d = df.tail(7)["ventas_total"].mean()
 
-mm_actual = df_mm["mm7"].iloc[-1]
-mm_prev = df_mm["mm7"].iloc[-8] if len(df_mm) >= 8 else mm_actual
-var_mm = ((mm_actual - mm_prev) / mm_prev * 100) if mm_prev > 0 else 0
+prev_7d = df.iloc[-14:-7]["ventas_total"].mean()
+var_7d = ((media_7d - prev_7d) / prev_7d * 100) if prev_7d > 0 else 0
 
-c1, c2 = st.columns([2, 1])
-with c1:
+col1, col2 = st.columns([1, 3])
+
+with col1:
     st.metric(
-        "Media móvil 7 días",
-        f"{mm_actual:,.0f} €",
-        f"{var_mm:+.1f} %"
+        label="Media móvil 7 días",
+        value=f"{media_7d:,.0f} €",
+        delta=f"{var_7d:+.1f} %",
     )
 
-with c2:
-    st.line_chart(df_mm.set_index("fecha")["mm7"].tail(21))
+with col2:
+    trend_df = df.set_index("fecha")["ventas_total"].rolling(7).mean()
+    st.line_chart(trend_df)
 
-# =========================
-# BLOQUE 2 · CONSISTENCIA
-# =========================
 st.divider()
+
+# ===============================
+# BLOQUE 2 · CONSISTENCIA DEL RESULTADO
+# ===============================
+
 st.subheader("Consistencia del resultado")
 
-ventas_semanales = (
-    df.groupby(["year", "week"])["ventas"]
-    .sum()
-    .tail(6)
-)
+weekly = df.groupby(["year", "week"])["ventas_total"].sum().reset_index()
+cv = weekly["ventas_total"].std() / weekly["ventas_total"].mean() * 100
 
-coef_var = ventas_semanales.std() / ventas_semanales.mean() * 100 if ventas_semanales.mean() > 0 else 0
+col1, col2, col3 = st.columns(3)
 
-st.metric(
-    "Coeficiente de variación semanal",
-    f"{coef_var:.0f} %",
-    help="Variabilidad del resultado entre semanas"
-)
+with col1:
+    st.metric("Coeficiente de variación semanal", f"{cv:.1f} %")
 
-# =========================
-# BLOQUE 3 · RITMO SEMANAL
-# =========================
+with col2:
+    delta_week = (
+        (weekly.iloc[-1]["ventas_total"] - weekly.iloc[-2]["ventas_total"])
+        / weekly.iloc[-2]["ventas_total"] * 100
+        if len(weekly) > 1
+        else 0
+    )
+    st.metric("Variación semana vs semana", f"{delta_week:+.1f} %")
+
+with col3:
+    ticket = df["ventas_total"].sum() / df["tickets_total"].sum()
+    st.metric("Ticket medio tendencial", f"{ticket:.2f} €")
+
 st.divider()
-st.subheader("Ritmo semanal (peso por día)")
+
+# ===============================
+# BLOQUE 3 · DÍAS FUERTES VS DÉBILES
+# ===============================
+
+st.subheader("Días fuertes vs días débiles")
 
 dow_map = {
     0: "Lunes", 1: "Martes", 2: "Miércoles",
     3: "Jueves", 4: "Viernes", 5: "Sábado", 6: "Domingo"
 }
 
-peso_dow = (
-    df_semana.groupby("dow")["ventas"]
-    .sum()
-    / df_semana["ventas"].sum() * 100
+dow_stats = (
+    df.groupby("dow")["ventas_total"]
+    .mean()
+    .reset_index()
+    .assign(dia=lambda x: x["dow"].map(dow_map))
+    .sort_values("ventas_total", ascending=False)
 )
 
-peso_dow = peso_dow.reindex(range(7), fill_value=0)
-peso_dow.index = peso_dow.index.map(dow_map)
+fuerte = dow_stats.iloc[0]
+debil = dow_stats.iloc[-1]
 
-st.bar_chart(peso_dow)
+col1, col2 = st.columns(2)
 
-# =========================
-# BLOQUE 4 · DÍAS FUERTES / DÉBILES (DINÁMICO)
-# =========================
+with col1:
+    st.metric(
+        "Día más fuerte",
+        fuerte["dia"],
+        f"{fuerte['ventas_total']:.0f} €"
+    )
+
+with col2:
+    st.metric(
+        "Día más débil",
+        debil["dia"],
+        f"{debil['ventas_total']:.0f} €"
+    )
+
+st.bar_chart(
+    dow_stats.set_index("dia")["ventas_total"],
+    height=260
+)
+
 st.divider()
-st.subheader("Días fuertes y débiles")
 
-dia_fuerte = peso_dow.idxmax()
-dia_debil = peso_dow.idxmin()
+# ===============================
+# BLOQUE 4 · ESTRUCTURA DE LA TENDENCIA
+# ===============================
 
-c1, c2 = st.columns(2)
-with c1:
-    st.metric("Día fuerte actual", dia_fuerte, f"{peso_dow.max():.1f} %")
+st.subheader("Estructura de la tendencia")
 
-with c2:
-    st.metric("Día débil actual", dia_debil, f"{peso_dow.min():.1f} %")
+# Pendiente simple últimos 14 días
+last_14 = df.tail(14)
+x = range(len(last_14))
+y = last_14["ventas_total"]
 
-# =========================
-# BLOQUE 5 · CALIDAD DEL INGRESO
-# =========================
-st.divider()
-st.subheader("Calidad del ingreso (comportamiento)")
+slope = pd.Series(y).diff().mean()
 
-df["tickets_totales"] = (
-    df["tickets_manana"] +
-    df["tickets_tarde"] +
-    df["tickets_noche"]
-)
-
-df["comensales_totales"] = (
-    df["comensales_manana"] +
-    df["comensales_tarde"] +
-    df["comensales_noche"]
-)
-
-ratio_tc = (
-    df["tickets_totales"] / df["comensales_totales"]
-).replace([float("inf"), -float("inf")], 0)
-
-ratio_actual = ratio_tc.iloc[-1]
-ratio_prev = ratio_tc.iloc[-8] if len(ratio_tc) >= 8 else ratio_actual
-var_ratio = ratio_actual - ratio_prev
-
-st.metric(
-    "Tickets por comensal (tendencia)",
-    f"{ratio_actual:.2f}",
-    f"{var_ratio:+.2f}"
-)
-
-# =========================
-# BLOQUE 6 · ALERTAS MINIMAS
-# =========================
-st.divider()
-st.subheader("Alertas")
-
-alertas = []
-
-if coef_var > 20:
-    alertas.append("⚠️ Alta variabilidad semanal")
-
-if peso_dow.max() > 30:
-    alertas.append("⚠️ Alta dependencia de un solo día")
-
-if var_ratio < -0.04:
-    alertas.append("⚠️ Aumento del consumo compartido")
-
-if alertas:
-    for a in alertas:
-        st.write(a)
+if slope > 5:
+    estructura = "Tendencia estructuralmente creciente"
+elif slope < -5:
+    estructura = "Tendencia estructuralmente decreciente"
 else:
-    st.write("Sin alertas relevantes")
+    estructura = "Tendencia estable"
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("Pendiente media diaria", f"{slope:+.1f} €")
+
+with col2:
+    st.metric("Dirección", estructura)
+
+with col3:
+    peso_findesemana = (
+        df[df["dow"] >= 4]["ventas_total"].sum()
+        / df["ventas_total"].sum() * 100
+    )
+    st.metric("Peso viernes–domingo", f"{peso_findesemana:.1f} %")
+
+# ===============================
+# NOTA FINAL
+# ===============================
+
+st.caption(
+    "Este bloque describe la dirección y estabilidad del negocio. "
+    "No interpreta causas ni recomienda acciones."
+)
