@@ -26,7 +26,7 @@ with st.sidebar:
     st.markdown("### Próximamente")
     st.markdown(
         "<span style='color:#999;'>"
-        "Compras · Costes · Cuenta de Resultados"
+        "Compras · Costes · Cuenta de Resultados Operativa, Escenarios de Rentabilidad · Optimización de los Recursos"
         "</span>",
         unsafe_allow_html=True
     )
