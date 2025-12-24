@@ -21,6 +21,28 @@ COMPRAS_FILE = Path("compras.csv")
 PROVEEDORES_FILE = Path("proveedores.csv")
 
 # =========================
+# ESTADO: PROVEEDORES (MAESTRO)
+# =========================
+if "proveedores" not in st.session_state:
+    if PROVEEDORES_FILE.exists():
+        st.session_state.proveedores = (
+            pd.read_csv(PROVEEDORES_FILE)["Proveedor"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .unique()
+            .tolist()
+        )
+    else:
+        st.session_state.proveedores = []
+
+# Normalizar y ordenar siempre
+st.session_state.proveedores = sorted(
+    set(st.session_state.proveedores),
+    key=lambda x: x.upper()
+)
+
+# =========================
 # ESTADO: COMPRAS
 # =========================
 if "compras" not in st.session_state:
@@ -30,20 +52,6 @@ if "compras" not in st.session_state:
         st.session_state.compras = pd.DataFrame(
             columns=["Fecha", "Proveedor", "Familia", "Coste (€)"]
         )
-
-# =========================
-# ESTADO: PROVEEDORES (MAESTRO)
-# =========================
-if "proveedores" not in st.session_state:
-    if PROVEEDORES_FILE.exists():
-        st.session_state.proveedores = (
-            pd.read_csv(PROVEEDORES_FILE)["Proveedor"]
-            .dropna()
-            .unique()
-            .tolist()
-        )
-    else:
-        st.session_state.proveedores = []
 
 FAMILIAS = ["Materia prima", "Bebidas", "Limpieza", "Otros"]
 
@@ -87,7 +95,6 @@ with st.container(border=True):
         )
 
         if registrar:
-
             if not proveedor or coste <= 0:
                 st.stop()
 
@@ -123,18 +130,32 @@ with st.container(border=True):
 
         nombre = nuevo_proveedor.strip()
 
-        if nombre and nombre not in st.session_state.proveedores:
-            st.session_state.proveedores.append(nombre)
+        if not nombre:
+            st.stop()
 
-            pd.DataFrame(
-                {"Proveedor": st.session_state.proveedores}
-            ).to_csv(PROVEEDORES_FILE, index=False)
+        existentes_upper = [p.upper() for p in st.session_state.proveedores]
 
-            st.success("Proveedor guardado")
+        if nombre.upper() in existentes_upper:
+            st.warning("Este proveedor ya existe. No se ha guardado.")
+            st.stop()
+
+        st.session_state.proveedores.append(nombre)
+
+        # Normalizar, ordenar y persistir
+        st.session_state.proveedores = sorted(
+            set(st.session_state.proveedores),
+            key=lambda x: x.upper()
+        )
+
+        pd.DataFrame(
+            {"Proveedor": st.session_state.proveedores}
+        ).to_csv(PROVEEDORES_FILE, index=False)
+
+        st.success("Proveedor guardado")
 
     if st.session_state.proveedores:
         st.markdown("**Proveedores existentes**")
-        for p in sorted(st.session_state.proveedores):
+        for p in st.session_state.proveedores:
             st.write(f"• {p}")
 
 # =========================================================
