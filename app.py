@@ -8,4 +8,4 @@ st.set_page_config(
 
 st.title("OYKEN")
 st.caption("Sistema operativo de gestión")
-st.markdown("Selecciona un módulo en el menú lateral"
+st.markdown("Selecciona un módulo en el menú lateral")
