@@ -5,10 +5,6 @@ from pathlib import Path
 # =========================
 # CONFIGURACIÓN DE PÁGINA
 # =========================
-st.set_page_config(
-    page_title="OYKEN · Costes de Personal",
-    layout="centered"
-)
 
 st.title("OYKEN · Costes de Personal")
 st.caption("Estructura económica del capital humano")
