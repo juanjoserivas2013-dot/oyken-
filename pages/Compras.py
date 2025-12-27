@@ -6,10 +6,6 @@ from datetime import date
 # =========================
 # CONFIGURACIÓN
 # =========================
-st.set_page_config(
-    page_title="OYKEN · Compras",
-    layout="centered"
-)
 
 st.title("OYKEN · Compras")
 st.divider()
