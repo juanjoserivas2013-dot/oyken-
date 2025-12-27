@@ -1,147 +1,147 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-from datetime import datetime
 
 # =========================
-# CONFIGURACIÓN BÁSICA
+# IDENTIDAD
 # =========================
-st.set_page_config(
-    page_title="OYKEN · Cuenta de Resultados",
-    layout="centered"
-)
-
 st.title("OYKEN · Cuenta de Resultados")
 st.caption("Lectura económica real del negocio. Sin interpretación.")
 
 # =========================
-# ARCHIVOS DE DATOS
+# SELECTOR DE PERIODO
+# =========================
+c1, c2 = st.columns(2)
+with c1:
+    mes = st.selectbox("Mes", list(range(1, 13)), index=11)
+with c2:
+    año = st.selectbox("Año", [2024, 2025, 2026], index=1)
+
+# =========================
+# ARCHIVOS DEL ECOSISTEMA
 # =========================
 VENTAS_FILE = Path("ventas.csv")
+COMPRAS_FILE = Path("compras.csv")
+INVENTARIO_FILE = Path("inventario.csv")
+MERMAS_FILE = Path("mermas.csv")
+GASTOS_FILE = Path("gastos.csv")
+RRHH_FILE = Path("rrhh.csv")
 
 # =========================
-# CONTRATO DE DATOS (VENTAS)
+# FUNCIÓN DE CARGA SEGURA
 # =========================
-COLUMNAS_VENTAS = [
-    "fecha",
-    "ventas_manana_eur", "ventas_tarde_eur", "ventas_noche_eur", "ventas_total_eur",
-    "comensales_manana", "comensales_tarde", "comensales_noche",
-    "tickets_manana", "tickets_tarde", "tickets_noche",
-    "observaciones"
-]
+def cargar_csv(path):
+    if path.exists():
+        return pd.read_csv(path)
+    return pd.DataFrame()
 
 # =========================
-# CARGA DEFENSIVA DE VENTAS
+# CARGA DE DATOS
 # =========================
-if VENTAS_FILE.exists():
-    df_ventas = pd.read_csv(VENTAS_FILE, parse_dates=["fecha"])
-else:
-    df_ventas = pd.DataFrame(columns=COLUMNAS_VENTAS)
-
-for col in COLUMNAS_VENTAS:
-    if col not in df_ventas.columns:
-        df_ventas[col] = 0
-
-if df_ventas.empty:
-    st.info("No hay ventas registradas todavía.")
-    st.stop()
+df_ventas = cargar_csv(VENTAS_FILE)
+df_compras = cargar_csv(COMPRAS_FILE)
+df_inventario = cargar_csv(INVENTARIO_FILE)
+df_mermas = cargar_csv(MERMAS_FILE)
+df_gastos = cargar_csv(GASTOS_FILE)
+df_rrhh = cargar_csv(RRHH_FILE)
 
 # =========================
-# SELECCIÓN DE PERIODO
+# INGRESOS · VENTAS
 # =========================
-st.divider()
+ventas_totales = 0.0
 
-col1, col2 = st.columns(2)
-
-with col1:
-    mes = st.selectbox(
-        "Mes",
-        options=list(range(1, 13)),
-        format_func=lambda x: datetime(2000, x, 1).strftime("%B")
-    )
-
-with col2:
-    anio = st.selectbox(
-        "Año",
-        options=sorted(df_ventas["fecha"].dt.year.unique())
-    )
+if not df_ventas.empty and "ventas_total_eur" in df_ventas.columns:
+    df_ventas["fecha"] = pd.to_datetime(df_ventas["fecha"])
+    df_v = df_ventas[
+        (df_ventas["fecha"].dt.month == mes) &
+        (df_ventas["fecha"].dt.year == año)
+    ]
+    ventas_totales = df_v["ventas_total_eur"].sum()
 
 # =========================
-# FILTRO DE PERIODO
+# COSTE DE VENTAS
 # =========================
-df_periodo = df_ventas[
-    (df_ventas["fecha"].dt.month == mes) &
-    (df_ventas["fecha"].dt.year == anio)
-].copy()
 
-if df_periodo.empty:
-    st.warning("No hay datos para el periodo seleccionado.")
-    st.stop()
+# Compras imputadas
+compras_total = (
+    df_compras["importe_eur"].sum()
+    if not df_compras.empty and "importe_eur" in df_compras.columns
+    else 0.0
+)
 
-# =========================
-# INGRESOS
-# =========================
-ventas_totales = df_periodo["ventas_total_eur"].sum()
-
-# =========================
-# BLOQUES PLACEHOLDER (HASTA CRUCE REAL)
-# =========================
-compras_imputadas = 0.0
+# Variación de inventario
 variacion_inventario = 0.0
-mermas = 0.0
+if (
+    not df_inventario.empty
+    and "inventario_inicial_eur" in df_inventario.columns
+    and "inventario_final_eur" in df_inventario.columns
+):
+    variacion_inventario = (
+        df_inventario["inventario_final_eur"].sum()
+        - df_inventario["inventario_inicial_eur"].sum()
+    )
 
-coste_ventas_total = compras_imputadas + variacion_inventario + mermas
-margen_bruto = ventas_totales - coste_ventas_total
-margen_bruto_pct = (margen_bruto / ventas_totales * 100) if ventas_totales > 0 else 0
+# Mermas (por ahora solo cuantía)
+mermas_total = (
+    df_mermas["cantidad"].sum()
+    if not df_mermas.empty and "cantidad" in df_mermas.columns
+    else 0.0
+)
 
-coste_salarial = 0.0
-seguridad_social = 0.0
-total_personal = coste_salarial + seguridad_social
-
-gastos_operativos = 0.0
-
-resultado_operativo = margen_bruto - total_personal - gastos_operativos
+coste_ventas = compras_total + variacion_inventario + mermas_total
 
 # =========================
-# VISUAL CUENTA DE RESULTADOS
+# MARGEN BRUTO
+# =========================
+margen_bruto = ventas_totales - coste_ventas
+margen_pct = (margen_bruto / ventas_totales * 100) if ventas_totales > 0 else 0.0
+
+# =========================
+# COSTES DE PERSONAL
+# =========================
+coste_personal = (
+    df_rrhh["coste_total_eur"].sum()
+    if not df_rrhh.empty and "coste_total_eur" in df_rrhh.columns
+    else 0.0
+)
+
+# =========================
+# GASTOS OPERATIVOS
+# =========================
+gastos_operativos = (
+    df_gastos["importe_eur"].sum()
+    if not df_gastos.empty and "importe_eur" in df_gastos.columns
+    else 0.0
+)
+
+# =========================
+# RESULTADO OPERATIVO
+# =========================
+resultado_operativo = margen_bruto - coste_personal - gastos_operativos
+
+# =========================
+# VISUALIZACIÓN PREMIUM
 # =========================
 st.divider()
-st.subheader(f"Periodo: {datetime(anio, mes, 1).strftime('%B %Y')}")
 
-def fila(label, value, bold=False):
-    if bold:
-        st.markdown(f"**{label}**  {value:,.2f} €")
-    else:
-        st.write(f"{label}  {value:,.2f} €")
+st.subheader("INGRESOS")
+st.metric("Ventas totales", f"{ventas_totales:,.2f} €")
 
-st.markdown("### INGRESOS")
-fila("Ventas totales", ventas_totales, bold=True)
+st.subheader("COSTE DE VENTAS")
+st.write(f"Compras imputadas: {compras_total:,.2f} €")
+st.write(f"Variación de inventario: {variacion_inventario:,.2f} €")
+st.write(f"Mermas: {mermas_total:,.2f}")
+st.write(f"**Coste de ventas total: {coste_ventas:,.2f} €**")
 
-st.markdown("---")
-st.markdown("### COSTE DE VENTAS")
-fila("Compras imputadas", compras_imputadas)
-fila("Variación de inventario", variacion_inventario)
-fila("Mermas", mermas)
-fila("→ Coste de ventas total", coste_ventas_total, bold=True)
+st.subheader("MARGEN BRUTO")
+st.metric("Margen bruto", f"{margen_bruto:,.2f} €", f"{margen_pct:.1f}%")
 
-st.markdown("---")
-st.markdown("### MARGEN BRUTO")
-fila("Margen bruto", margen_bruto, bold=True)
-st.caption(f"Margen bruto %: {margen_bruto_pct:.1f} %")
+st.subheader("COSTES DE PERSONAL")
+st.metric("Total personal", f"{coste_personal:,.2f} €")
 
-st.markdown("---")
-st.markdown("### COSTES DE PERSONAL")
-fila("Coste salarial", coste_salarial)
-fila("Seguridad social", seguridad_social)
-fila("→ Total personal", total_personal, bold=True)
-
-st.markdown("---")
-st.markdown("### GASTOS OPERATIVOS")
-fila("Gastos varios", gastos_operativos)
-
-st.markdown("---")
-st.markdown("### RESULTADO OPERATIVO")
-fila("Resultado operativo", resultado_operativo, bold=True)
+st.subheader("GASTOS OPERATIVOS")
+st.metric("Gastos varios", f"{gastos_operativos:,.2f} €")
 
 st.divider()
-st.caption("OYKEN no interpreta todavía. Solo muestra la verdad económica.")
+st.subheader("RESULTADO OPERATIVO")
+st.metric("Resultado operativo", f"{resultado_operativo:,.2f} €")
