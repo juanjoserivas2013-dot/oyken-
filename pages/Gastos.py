@@ -29,15 +29,13 @@ mes = st.selectbox(
         "Enero", "Febrero", "Marzo", "Abril",
         "Mayo", "Junio", "Julio", "Agosto",
         "Septiembre", "Octubre", "Noviembre", "Diciembre"
-    ],
-    index=0
+    ]
 )
 
+# =========================
+# FORMULARIO
+# =========================
 st.divider()
-
-# =========================
-# FORMULARIO DE REGISTRO
-# =========================
 st.subheader("Registrar nuevo gasto")
 
 FAMILIAS = [
@@ -92,7 +90,7 @@ with st.form("form_gastos", clear_on_submit=True):
         st.success("Gasto registrado correctamente.")
 
 # =========================
-# VISUALIZACIÓN DEL MES
+# TABLA
 # =========================
 st.divider()
 st.subheader(f"Gastos imputados · {mes}")
@@ -102,33 +100,6 @@ gastos_mes = gastos_df[gastos_df["Mes"] == mes]
 if gastos_mes.empty:
     st.info("No hay gastos registrados para este mes.")
 else:
-    st.dataframe(
-        gastos_mes,
-        hide_index=True,
-        use_container_width=True
-    )
-
+    st.dataframe(gastos_mes, hide_index=True, use_container_width=True)
     total = gastos_mes["Importe (€)"].sum()
-    st.markdown(f"### Total gastos estructurales · **{total:,.2f} €**")
-
-# =========================
-# ELIMINAR GASTO
-# =========================
-if not gastos_mes.empty:
-    st.divider()
-    st.subheader("Eliminar gasto")
-
-    idx = st.selectbox(
-        "Selecciona un registro",
-        gastos_mes.index,
-        format_func=lambda i: (
-            f'{gastos_df.loc[i,"Familia"]} | '
-            f'{gastos_df.loc[i,"Concepto"]} | '
-            f'{gastos_df.loc[i,"Importe (€)"]:.2f} €'
-        )
-    )
-
-    if st.button("Eliminar gasto"):
-        gastos_df = gastos_df.drop(idx).reset_index(drop=True)
-        gastos_df.to_csv(DATA_FILE, index=False)
-        st.success("Gasto eliminado correctamente.")
+    st.markdown(f"### Total mensual: **{total:,.2f} €**")
