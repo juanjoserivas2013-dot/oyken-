@@ -2,14 +2,6 @@ import streamlit as st
 import pandas as pd
 from pathlib import Path
 
-# =========================
-# CONFIGURACIÓN
-# =========================
-st.set_page_config(
-    page_title="OYKEN · Gastos",
-    layout="centered"
-)
-
 st.title("OYKEN · Gastos")
 st.markdown("**Estructura económica mensual del negocio**")
 st.caption("Registro de gastos estructurales no vinculados a producto ni personal")
