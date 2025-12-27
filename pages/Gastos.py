@@ -4,14 +4,6 @@ from pathlib import Path
 from datetime import date
 
 # =====================================================
-# CONFIGURACIÓN (IMPORTANTE: SOLO AQUÍ, NO EN app.py)
-# =====================================================
-st.set_page_config(
-    page_title="OYKEN · Gastos",
-    layout="centered"
-)
-
-# =====================================================
 # CABECERA
 # =====================================================
 st.title("OYKEN · Gastos")
