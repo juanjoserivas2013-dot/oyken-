@@ -6,10 +6,6 @@ from datetime import datetime
 # =========================
 # CONFIGURACIÓN BÁSICA
 # =========================
-st.set_page_config(
-    page_title="OYKEN · Cuenta de Resultados",
-    layout="centered"
-)
 
 st.title("OYKEN · Cuenta de Resultados")
 st.caption("Lectura económica real del negocio. Sin interpretación.")
