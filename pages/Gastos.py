@@ -5,6 +5,10 @@ from pathlib import Path
 # =========================
 # CONFIGURACIÓN
 # =========================
+st.set_page_config(
+    page_title="OYKEN · Gastos",
+    layout="centered"
+)
 
 st.title("OYKEN · Gastos")
 st.markdown("**Estructura económica mensual del negocio**")
