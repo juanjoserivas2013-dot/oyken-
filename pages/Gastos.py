@@ -1,63 +1,85 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
+from datetime import date
 
-st.title("OYKEN · Gastos")
-st.markdown("**Estructura económica mensual del negocio**")
-st.caption("Registro de gastos estructurales no vinculados a producto ni personal")
-
-# =========================
-# ARCHIVO DE DATOS
-# =========================
-DATA_FILE = Path("gastos.csv")
-
-if DATA_FILE.exists():
-    gastos_df = pd.read_csv(DATA_FILE)
-else:
-    gastos_df = pd.DataFrame(
-        columns=["Mes", "Familia", "Concepto", "Tipo", "Importe (€)"]
-    )
-
-# =========================
-# SELECTOR DE MES
-# =========================
-st.divider()
-
-mes = st.selectbox(
-    "📅 Mes de imputación",
-    [
-        "Enero", "Febrero", "Marzo", "Abril",
-        "Mayo", "Junio", "Julio", "Agosto",
-        "Septiembre", "Octubre", "Noviembre", "Diciembre"
-    ]
+# =====================================================
+# CONFIGURACIÓN (IMPORTANTE: SOLO AQUÍ, NO EN app.py)
+# =====================================================
+st.set_page_config(
+    page_title="OYKEN · Gastos",
+    layout="centered"
 )
 
-# =========================
-# FORMULARIO
-# =========================
-st.divider()
-st.subheader("Registrar nuevo gasto")
+# =====================================================
+# CABECERA
+# =====================================================
+st.title("OYKEN · Gastos")
+st.markdown("**Registro de gastos operativos no ligados a compras de producto.**")
+st.caption("Aquí se captura la estructura fija y variable del negocio.")
 
-FAMILIAS = [
-    "Alquiler y arrendamientos",
+# =====================================================
+# ARCHIVO DE DATOS
+# =====================================================
+DATA_FILE = Path("gastos.csv")
+
+# =====================================================
+# CARGA / INICIALIZACIÓN DE ESTADO
+# =====================================================
+if "gastos" not in st.session_state:
+    if DATA_FILE.exists():
+        st.session_state.gastos = pd.read_csv(DATA_FILE)
+    else:
+        st.session_state.gastos = pd.DataFrame(
+            columns=[
+                "Fecha",
+                "Mes",
+                "Concepto",
+                "Categoria",
+                "Coste (€)"
+            ]
+        )
+
+# =====================================================
+# CATEGORÍAS DE GASTO (BASE OYKEN)
+# =====================================================
+CATEGORIAS = [
+    "Alquiler",
     "Suministros",
-    "Servicios externos",
-    "Marketing y ventas",
-    "Financieros",
-    "Impuestos y tasas",
-    "Otros estructurales"
+    "Mantenimiento",
+    "Servicios profesionales",
+    "Marketing",
+    "Otros"
 ]
 
-TIPOS = ["Fijo", "Semifijo", "Variable estructural"]
+# =====================================================
+# FORMULARIO DE REGISTRO
+# =====================================================
+with st.form("registro_gastos", clear_on_submit=True):
 
-with st.form("form_gastos", clear_on_submit=True):
+    col1, col2 = st.columns(2)
 
-    familia = st.selectbox("Familia de gasto", FAMILIAS)
-    concepto = st.text_input("Concepto")
-    tipo = st.radio("Tipo de gasto", TIPOS, horizontal=True)
-    importe = st.number_input(
-        "Importe mensual (€)",
-        min_value=0.0,
+    with col1:
+        fecha = st.date_input(
+            "Fecha",
+            value=date.today(),
+            format="DD/MM/YYYY"
+        )
+
+    with col2:
+        categoria = st.selectbox(
+            "Categoría",
+            CATEGORIAS
+        )
+
+    concepto = st.text_input(
+        "Concepto / Descripción",
+        placeholder="Ej: Alquiler local, gestoría, electricidad..."
+    )
+
+    coste = st.number_input(
+        "Coste (€)",
+        min_value=0.00,
         step=0.01,
         format="%.2f"
     )
@@ -65,41 +87,71 @@ with st.form("form_gastos", clear_on_submit=True):
     submitted = st.form_submit_button("Registrar gasto")
 
     if submitted:
+
         if not concepto:
-            st.warning("El concepto no puede estar vacío.")
+            st.warning("Debes introducir un concepto.")
             st.stop()
 
-        if importe <= 0:
-            st.warning("El importe debe ser mayor que cero.")
+        if coste <= 0:
+            st.warning("El coste debe ser mayor que cero.")
             st.stop()
 
-        nuevo = {
-            "Mes": mes,
-            "Familia": familia,
+        nuevo_gasto = {
+            "Fecha": fecha.strftime("%d/%m/%Y"),
+            "Mes": fecha.strftime("%Y-%m"),
             "Concepto": concepto,
-            "Tipo": tipo,
-            "Importe (€)": round(importe, 2)
+            "Categoria": categoria,
+            "Coste (€)": round(coste, 2)
         }
 
-        gastos_df = pd.concat(
-            [gastos_df, pd.DataFrame([nuevo])],
+        st.session_state.gastos = pd.concat(
+            [st.session_state.gastos, pd.DataFrame([nuevo_gasto])],
             ignore_index=True
         )
 
-        gastos_df.to_csv(DATA_FILE, index=False)
+        st.session_state.gastos.to_csv(DATA_FILE, index=False)
+
         st.success("Gasto registrado correctamente.")
 
-# =========================
-# TABLA
-# =========================
+# =====================================================
+# VISUALIZACIÓN
+# =====================================================
 st.divider()
-st.subheader(f"Gastos imputados · {mes}")
 
-gastos_mes = gastos_df[gastos_df["Mes"] == mes]
-
-if gastos_mes.empty:
-    st.info("No hay gastos registrados para este mes.")
+if st.session_state.gastos.empty:
+    st.info("No hay gastos registrados todavía.")
 else:
-    st.dataframe(gastos_mes, hide_index=True, use_container_width=True)
-    total = gastos_mes["Importe (€)"].sum()
-    st.markdown(f"### Total mensual: **{total:,.2f} €**")
+    st.subheader("Gastos registrados")
+
+    st.dataframe(
+        st.session_state.gastos,
+        hide_index=True,
+        use_container_width=True
+    )
+
+    total = st.session_state.gastos["Coste (€)"].sum()
+    st.markdown(f"### Total acumulado: **{total:.2f} €**")
+
+# =====================================================
+# ELIMINAR REGISTRO
+# =====================================================
+st.subheader("Eliminar gasto")
+
+idx = st.selectbox(
+    "Selecciona un registro",
+    st.session_state.gastos.index,
+    format_func=lambda i: (
+        f'{st.session_state.gastos.loc[i,"Fecha"]} | '
+        f'{st.session_state.gastos.loc[i,"Concepto"]} | '
+        f'{st.session_state.gastos.loc[i,"Coste (€)"]:.2f} €'
+    )
+)
+
+if st.button("Eliminar gasto"):
+    st.session_state.gastos = (
+        st.session_state.gastos
+        .drop(idx)
+        .reset_index(drop=True)
+    )
+    st.session_state.gastos.to_csv(DATA_FILE, index=False)
+    st.success("Gasto eliminado correctamente.")
