@@ -22,6 +22,32 @@ INVENTARIO_FILE = Path("inventario.csv")
 GASTOS_FILE = Path("gastos.csv")
 
 # =====================================================
+# UTILIDAD CENTRAL — CONTRATO OYKEN VENTAS
+# =====================================================
+
+def cargar_ventas():
+    if not VENTAS_FILE.exists():
+        return pd.DataFrame()
+
+    df = pd.read_csv(VENTAS_FILE)
+
+    # Fecha OYKEN: datetime normalizado (día puro)
+    df["fecha"] = pd.to_datetime(df["fecha"]).dt.normalize()
+
+    # Forzar columnas numéricas
+    cols_num = [
+        "ventas_manana_eur",
+        "ventas_tarde_eur",
+        "ventas_noche_eur",
+        "ventas_total_eur"
+    ]
+
+    for col in cols_num:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+    return df
+
+# =====================================================
 # SELECTOR PERIODO
 # =====================================================
 
@@ -51,10 +77,11 @@ st.divider()
 
 ventas_total = 0.0
 
-if VENTAS_FILE.exists():
-    df_v = pd.read_csv(VENTAS_FILE, parse_dates=["fecha"])
-    df_v["Mes"] = df_v["fecha"].dt.strftime("%Y-%m")
-    ventas_total = df_v[df_v["Mes"] == periodo]["ventas_total_eur"].sum()
+df_ventas = cargar_ventas()
+
+if not df_ventas.empty:
+    df_ventas["Mes"] = df_ventas["fecha"].dt.strftime("%Y-%m")
+    ventas_total = df_ventas[df_ventas["Mes"] == periodo]["ventas_total_eur"].sum()
 
 # =====================================================
 # COMPRAS (COGS)
@@ -86,7 +113,6 @@ if INVENTARIO_FILE.exists():
         (df_i["Año"] == año_sel)
     ]
 
-    # Mes anterior
     if mes_num == 1:
         mes_ant = "Diciembre"
         año_ant = año_sel - 1
@@ -122,10 +148,10 @@ if GASTOS_FILE.exists():
     )
 
 # =====================================================
-# RRHH (FASE 1 — NEUTRO)
+# RRHH (NEUTRO POR AHORA)
 # =====================================================
 
-coste_personal = 0.0  # Se integrará por CSV en fase siguiente
+coste_personal = 0.0
 
 # =====================================================
 # CÁLCULOS
@@ -135,7 +161,7 @@ margen_bruto = ventas_total - compras_producto + inventario_var
 ebitda = margen_bruto - coste_personal - gastos_total
 
 # =====================================================
-# FUNCIONES UI
+# FUNCIÓN UI BASE (MISMO DISEÑO OYKEN)
 # =====================================================
 
 def fila(concepto, importe):
@@ -146,18 +172,24 @@ def fila(concepto, importe):
         st.write(f"{importe:,.2f} €")
 
 # =====================================================
-# RESULTADO EJECUTIVO
+# BLOQUE 1 · RESULTADO DEL PERIODO
 # =====================================================
 
 st.subheader("Resultado del periodo")
+
 fila("Ventas netas", ventas_total)
 fila("Margen bruto", margen_bruto)
-fila("EBITDA", ebitda)
+
+c1, c2 = st.columns([4, 1])
+with c1:
+    st.markdown("**EBITDA**")
+with c2:
+    st.markdown(f"**{ebitda:,.2f} €**")
 
 st.divider()
 
 # =====================================================
-# ESTRUCTURA CONTABLE
+# BLOQUE 2 · ESTRUCTURA CONTABLE
 # =====================================================
 
 st.subheader("Estructura contable")
@@ -170,7 +202,12 @@ st.divider()
 st.markdown("**Coste de ventas (COGS)**")
 fila("Compras de producto", -compras_producto)
 fila("Variación de inventario", inventario_var)
-fila("Margen bruto", margen_bruto)
+
+c1, c2 = st.columns([4, 1])
+with c1:
+    st.markdown("**MARGEN BRUTO**")
+with c2:
+    st.markdown(f"**{margen_bruto:,.2f} €**")
 
 st.divider()
 
@@ -191,7 +228,7 @@ fila("Resultado operativo", ebitda)
 st.divider()
 
 # =====================================================
-# LECTURA OYKEN
+# BLOQUE 3 · LECTURA OYKEN
 # =====================================================
 
 st.subheader("Lectura del periodo")
