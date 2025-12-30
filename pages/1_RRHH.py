@@ -90,7 +90,7 @@ with st.form("alta_puesto", clear_on_submit=True):
         }
         guardar_puesto(registro)
         st.success(f"Puesto '{puesto}' guardado para {anio_activo}")
-        st.experimental_rerun()
+        st.rerun()
 
 # =====================================================
 # TABLA · ESTRUCTURA DE PUESTOS
