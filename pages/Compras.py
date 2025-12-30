@@ -243,14 +243,19 @@ with st.container(border=True):
 st.divider()
 st.subheader("Base Cuenta de Resultados — Compras mensuales")
 
-# Usamos el MISMO dataframe que ya se muestra arriba
-if not df.empty:
+# Fuente única: st.session_state.compras
+if not st.session_state.compras.empty:
 
-    df_base = df.copy()
+    df_base = st.session_state.compras.copy()
 
-    # Asegurar fecha
-    df_base["Fecha"] = pd.to_datetime(df_base["Fecha"], dayfirst=True, errors="coerce")
+    # Asegurar fecha como datetime
+    df_base["Fecha"] = pd.to_datetime(
+        df_base["Fecha"],
+        dayfirst=True,
+        errors="coerce"
+    )
 
+    # Selector de año (solo para esta base)
     anio_base = st.selectbox(
         "Año base para Cuenta de Resultados (Compras)",
         sorted(df_base["Fecha"].dt.year.dropna().unique()),
@@ -287,3 +292,4 @@ if not df.empty:
 
 else:
     st.info("No hay compras registradas para construir la base mensual.")
+
