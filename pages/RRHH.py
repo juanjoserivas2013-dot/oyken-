@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 st.title("OYKEN · RRHH")
-st.caption("Estructura salarial y coste de personal")
+st.caption("Gestión del coste de personal")
 
 # =====================================================
 # CONSTANTES
@@ -23,21 +23,22 @@ MESES = [
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ]
 
-COLUMNAS_RRHH = ["Puesto", "Bruto anual (€)"] + MESES
-RRHH_FILE = Path("rrhh_coste_mensual.csv")
+COLUMNAS_BASE = ["Puesto", "Bruto anual (€)"] + MESES
+RUTA_EXPORT = Path("rrhh_coste_mensual.csv")
+SS_EMPRESA = 0.33
 
 # =====================================================
 # ESTADO INICIAL
 # =====================================================
 
 if "rrhh_personal" not in st.session_state:
-    st.session_state.rrhh_personal = pd.DataFrame(columns=COLUMNAS_RRHH)
+    st.session_state.rrhh_personal = pd.DataFrame(columns=COLUMNAS_BASE)
 
 # =====================================================
-# FASE 1 · ALTA DE PUESTOS
+# FASE 1 · ALTA DE PERSONAL
 # =====================================================
 
-st.subheader("Fase 1 · Personal")
+st.subheader("Fase 1 · Alta de puestos")
 
 with st.form("form_rrhh", clear_on_submit=True):
 
@@ -49,10 +50,10 @@ with st.form("form_rrhh", clear_on_submit=True):
         format="%.2f"
     )
 
-    st.markdown("**Personas por mes**")
+    st.markdown("**Número de personas por mes**")
 
-    cols = st.columns(6)
     personas_mes = {}
+    cols = st.columns(6)
 
     for i, mes in enumerate(MESES):
         with cols[i % 6]:
@@ -60,25 +61,21 @@ with st.form("form_rrhh", clear_on_submit=True):
                 mes,
                 min_value=0,
                 step=1,
-                key=f"personas_{mes}"
+                key=f"{mes}_personas"
             )
 
-    submit = st.form_submit_button("Añadir puesto")
+    guardar = st.form_submit_button("Añadir puesto")
 
-    if submit and puesto.strip() != "":
+    if guardar and puesto.strip() != "":
         fila = {
             "Puesto": puesto.strip(),
             "Bruto anual (€)": float(bruto_anual)
         }
-
         for mes in MESES:
-            fila[mes] = int(personas_mes.get(mes, 0))
+            fila[mes] = int(personas_mes[mes])
 
         st.session_state.rrhh_personal = pd.concat(
-            [
-                st.session_state.rrhh_personal,
-                pd.DataFrame([fila], columns=COLUMNAS_RRHH)
-            ],
+            [st.session_state.rrhh_personal, pd.DataFrame([fila])],
             ignore_index=True
         )
 
@@ -96,7 +93,7 @@ if not st.session_state.rrhh_personal.empty:
 st.divider()
 
 # =====================================================
-# FASE 2 · COSTE DE PERSONAL (NÓMINA)
+# FASE 2 · COSTE DE NÓMINA
 # =====================================================
 
 st.subheader("Fase 2 · Coste de personal (nómina)")
@@ -104,7 +101,6 @@ st.subheader("Fase 2 · Coste de personal (nómina)")
 tabla_nominas = []
 
 for _, row in st.session_state.rrhh_personal.iterrows():
-
     bruto_mensual = row["Bruto anual (€)"] / 12
     fila = {"Puesto": row["Puesto"]}
 
@@ -115,11 +111,10 @@ for _, row in st.session_state.rrhh_personal.iterrows():
 
 df_nominas = pd.DataFrame(tabla_nominas)
 
-st.dataframe(
-    df_nominas,
-    hide_index=True,
-    use_container_width=True
-)
+if not df_nominas.empty:
+    st.dataframe(df_nominas, hide_index=True, use_container_width=True)
+else:
+    st.info("No hay datos de nómina.")
 
 st.divider()
 
@@ -127,22 +122,20 @@ st.divider()
 # FASE 3 · SEGURIDAD SOCIAL Y COSTE EMPRESA
 # =====================================================
 
-st.subheader("Fase 3 · Seguridad Social y coste salarial")
+st.subheader("Fase 3 · Seguridad Social y coste empresa")
 
 aplicar_ss = st.checkbox(
     "Aplicar Seguridad Social Empresa (33%)",
     value=True
 )
 
-SS_EMPRESA = 0.33
 tabla_coste = []
 
 for _, row in df_nominas.iterrows():
-
     fila = {"Puesto": row["Puesto"]}
 
     for mes in MESES:
-        nomina = row[mes]
+        nomina = row.get(mes, 0.0)
         ss = nomina * SS_EMPRESA if aplicar_ss else 0.0
 
         fila[f"{mes} · Nómina"] = round(nomina, 2)
@@ -153,11 +146,17 @@ for _, row in df_nominas.iterrows():
 
 df_coste = pd.DataFrame(tabla_coste)
 
-st.dataframe(
-    df_coste,
-    hide_index=True,
-    use_container_width=True
-)
+# --- BLINDAJE: GARANTIZAR TODAS LAS COLUMNAS ---
+for mes in MESES:
+    for sufijo in ["Nómina", "SS Empresa", "Coste Empresa"]:
+        col = f"{mes} · {sufijo}"
+        if col not in df_coste.columns:
+            df_coste[col] = 0.0
+
+if not df_coste.empty:
+    st.dataframe(df_coste, hide_index=True, use_container_width=True)
+else:
+    st.info("No hay datos de coste salarial.")
 
 st.divider()
 
@@ -183,14 +182,10 @@ for mes in MESES:
 
 df_totales = pd.DataFrame(totales)
 
-st.dataframe(
-    df_totales,
-    hide_index=True,
-    use_container_width=True
-)
+st.dataframe(df_totales, hide_index=True, use_container_width=True)
 
 # =====================================================
-# EXPORTACIÓN CSV (CONTRATO OYKEN)
+# EXPORTACIÓN PARA CUENTA DE RESULTADOS
 # =====================================================
 
 anio = st.selectbox(
@@ -199,19 +194,10 @@ anio = st.selectbox(
     index=3
 )
 
-export = []
+df_export = df_totales.copy()
+df_export.insert(0, "Año", anio)
 
-for _, row in df_totales.iterrows():
-    export.append({
-        "Año": anio,
-        "Mes": row["Mes"],
-        "Nomina (€)": row["Nómina (€)"],
-        "Seguridad Social (€)": row["Seguridad Social (€)"],
-        "Coste Empresa (€)": row["Coste Empresa (€)"]
-    })
-
-df_export = pd.DataFrame(export)
-df_export.to_csv(RRHH_FILE, index=False)
+df_export.to_csv(RUTA_EXPORT, index=False)
 
 st.success("Coste de RRHH mensual guardado correctamente")
 st.caption("Este módulo construye y persiste el coste salarial completo.")
