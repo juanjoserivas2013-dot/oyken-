@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from pathlib import Path
 
-st.set_page_config(page_title="Cuenta de Resultados", layout="centered")
 st.title("Cuenta de Resultados")
 
 DATA_PATH = Path("data")
