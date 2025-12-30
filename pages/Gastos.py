@@ -149,34 +149,20 @@ if st.button("Eliminar gasto"):
 st.divider()
 st.subheader("Base Cuenta de Resultados — Gastos mensuales")
 
-df_gastos = st.session_state.gastos.copy()
+# 🔒 Cargar datos de gastos desde origen, NO desde la UI
+df_base = cargar_gastos()
 
-if df_gastos.empty:
-    st.info("No hay gastos suficientes para construir la base mensual.")
+if df_base.empty:
+    st.info("No hay gastos registrados todavía.")
 else:
-    # Asegurar tipo correcto
-    df_gastos["Coste (€)"] = pd.to_numeric(df_gastos["Coste (€)"], errors="coerce").fillna(0)
+    df_base["fecha"] = pd.to_datetime(df_base["fecha"])
+    df_base["mes"] = df_base["fecha"].dt.to_period("M").astype(str)
 
-    # Agrupar por Mes
-    resumen_mensual = (
-        df_gastos
-        .groupby("Mes", as_index=False)["Coste (€)"]
+    tabla_mensual = (
+        df_base
+        .groupby("mes", as_index=False)["coste"]
         .sum()
-        .sort_values("Mes")
+        .rename(columns={"coste": "total_gastos"})
     )
 
-    resumen_mensual.rename(
-        columns={"Coste (€)": "Total gastos (€)"},
-        inplace=True
-    )
-
-    st.dataframe(
-        resumen_mensual,
-        hide_index=True,
-        use_container_width=True
-    )
-
-    st.caption(
-        "Esta tabla es la base de lectura para la Cuenta de Resultados. "
-        "Se construye automáticamente a partir de los registros."
-    )
+    st.dataframe(tabla_mensual, use_container_width=True)
