@@ -243,24 +243,23 @@ with st.container(border=True):
 st.divider()
 st.subheader("Base Cuenta de Resultados — Compras mensuales")
 
-if not st.session_state.compras.empty:
+# Usamos el MISMO dataframe que ya se muestra arriba
+if not df.empty:
 
-    df = st.session_state.compras.copy()
+    df_base = df.copy()
 
-    # Asegurar fecha como datetime
-    df["Fecha"] = pd.to_datetime(df["Fecha"], dayfirst=True, errors="coerce")
+    # Asegurar fecha
+    df_base["Fecha"] = pd.to_datetime(df_base["Fecha"], dayfirst=True, errors="coerce")
 
-    # Selector de año (solo afecta a esta tabla)
-    anio_cr = st.selectbox(
-        "Año base para Cuenta de Resultados",
-        sorted(df["Fecha"].dt.year.dropna().unique()),
-        index=len(sorted(df["Fecha"].dt.year.dropna().unique())) - 1
+    anio_base = st.selectbox(
+        "Año base para Cuenta de Resultados (Compras)",
+        sorted(df_base["Fecha"].dt.year.dropna().unique()),
+        index=len(sorted(df_base["Fecha"].dt.year.dropna().unique())) - 1
     )
 
-    df_anio = df[df["Fecha"].dt.year == anio_cr]
+    df_anio = df_base[df_base["Fecha"].dt.year == anio_base]
 
-    # Agrupar por mes
-    resumen_mensual = (
+    resumen_compras = (
         df_anio
         .groupby(df_anio["Fecha"].dt.month)["Coste (€)"]
         .sum()
@@ -268,23 +267,23 @@ if not st.session_state.compras.empty:
         .reset_index()
     )
 
-    resumen_mensual.columns = ["Mes", "Compras (€)"]
+    resumen_compras.columns = ["Mes", "Compras (€)"]
 
-    resumen_mensual["Mes"] = [
+    resumen_compras["Mes"] = [
         "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
         "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
     ]
 
-    # Mostrar tabla
     st.dataframe(
-        resumen_mensual,
+        resumen_compras,
         hide_index=True,
         use_container_width=True
     )
 
-    # Total anual (informativo)
-    total_anual = resumen_mensual["Compras (€)"].sum()
-    st.metric("Total compras año", f"{total_anual:,.2f} €")
+    st.metric(
+        "Total anual compras",
+        f"{resumen_compras['Compras (€)'].sum():,.2f} €"
+    )
 
 else:
-    st.info("No hay compras registradas todavía.")
+    st.info("No hay compras registradas para construir la base mensual.")
