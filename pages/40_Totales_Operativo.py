@@ -99,17 +99,25 @@ MESES_TXT = {
     9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
 }
 
+from datetime import date
+
+MESES_TXT = {
+    1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+    5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+    9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+}
+
+mes_actual = date.today().month
+meses_disponibles = sorted(df_anio["mes"].unique())
+
 with c3:
-    meses_disponibles = sorted(df_anio["mes"].unique())
-
-    mes_sel_txt = st.multiselect(
+    mes_sel = st.selectbox(
         "Mes",
-        options=[MESES_TXT[m] for m in meses_disponibles],
-        default=[MESES_TXT[m] for m in meses_disponibles]
+        options=meses_disponibles,
+        index=meses_disponibles.index(mes_actual)
+        if mes_actual in meses_disponibles else 0,
+        format_func=lambda m: MESES_TXT[m]
     )
-
-    # Volvemos a mes numérico para el filtro
-    mes_sel = [k for k, v in MESES_TXT.items() if v in mes_sel_txt]
 
 
 df_filtro = df_anio[
