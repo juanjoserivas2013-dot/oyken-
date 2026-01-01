@@ -191,32 +191,6 @@ df_totales = pd.DataFrame(totales)
 
 st.dataframe(df_totales, hide_index=True, use_container_width=True)
 
-# ==================================================
-# EXPORTAR RRHH MENSUAL PARA TOTALES OPERATIVOS
-# ==================================================
-
-from datetime import date
-
-rrhh_export = []
-
-anio_actual = date.today().year
-
-for _, fila in df_totales.iterrows():
-    rrhh_export.append({
-        "anio": anio_actual,
-        "mes": fila["Mes"],
-        "origen": "RRHH",
-        "concepto": "RRHH Totales",
-        "importe_eur": fila["Coste Empresa (€)"]
-    })
-
-df_rrhh_export = pd.DataFrame(rrhh_export)
-
-df_rrhh_export.to_csv(
-    "rrhh_mensuales_consolidados.csv",
-    index=False
-)
-
 st.caption(
     "Este consolidado alimenta directamente la Cuenta de Resultados."
 )
