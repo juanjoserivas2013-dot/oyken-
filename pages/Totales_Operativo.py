@@ -110,17 +110,6 @@ if GASTOS_FILE.exists():
 
     df = pd.concat([df, gastos_mensuales], ignore_index=True)
 
-# =========================
-# LECTURA RRHH MENSUAL
-# =========================
-
-RRHH_FILE = Path("rrhh_mensuales_consolidados.csv")
-
-if RRHH_FILE.exists():
-    df_rrhh = pd.read_csv(RRHH_FILE)
-    df = pd.concat([df, df_rrhh], ignore_index=True)
-
-
 if df.empty:
     st.info("Totales Operativos no contiene registros.")
     st.stop()
