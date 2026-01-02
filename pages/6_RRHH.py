@@ -214,3 +214,29 @@ st.dataframe(
     hide_index=True,
     use_container_width=True
 )
+# ==================================================
+# EXPORTAR COSTE MENSUAL RRHH (PARA TOTALES OPERATIVOS)
+# ==================================================
+
+mapa_meses = {
+    "Enero": 1, "Febrero": 2, "Marzo": 3, "Abril": 4,
+    "Mayo": 5, "Junio": 6, "Julio": 7, "Agosto": 8,
+    "Septiembre": 9, "Octubre": 10, "Noviembre": 11, "Diciembre": 12
+}
+
+df_rrhh_export = coste_mensual.copy()
+
+df_rrhh_export["anio"] = anio_activo
+df_rrhh_export["mes"] = df_rrhh_export["Mes"].map(mapa_meses)
+df_rrhh_export["origen"] = "RRHH"
+df_rrhh_export["concepto"] = "Coste RRHH"
+df_rrhh_export["importe_eur"] = df_rrhh_export["Coste mensual (€)"]
+
+df_rrhh_export = df_rrhh_export[
+    ["anio", "mes", "origen", "concepto", "importe_eur"]
+]
+
+df_rrhh_export.to_csv(
+    "rrhh_coste_mensual.csv",
+    index=False
+)
