@@ -18,6 +18,11 @@ st.subheader("Contexto temporal")
 
 anio_actual = date.today().year
 
+MESES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+]
+
 col1, col2 = st.columns(2)
 
 with col1:
@@ -30,11 +35,8 @@ with col1:
 with col2:
     mes_sel = st.selectbox(
         "Mes",
-        options=[
-            "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-        ],
-        index=date.today().month - 1
+        options=["Todos"] + MESES,
+        index=0
     )
 
 # =========================
@@ -50,6 +52,15 @@ if not CSV_FILE.exists():
 tabla_meses = pd.read_csv(CSV_FILE)
 
 # =========================
+# FILTRO POR MES
+# =========================
+
+if mes_sel != "Todos":
+    tabla_filtrada = tabla_meses[tabla_meses["Mes"] == mes_sel]
+else:
+    tabla_filtrada = tabla_meses.copy()
+
+# =========================
 # VISUALIZACIÓN
 # =========================
 
@@ -57,7 +68,7 @@ st.divider()
 st.subheader("Ventas mensuales")
 
 st.dataframe(
-    tabla_meses,
+    tabla_filtrada,
     hide_index=True,
     use_container_width=True
 )
