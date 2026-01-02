@@ -140,7 +140,6 @@ if RRHH_FILE.exists():
 
     df = pd.concat([df, df_rrhh], ignore_index=True)
 
-
 if df.empty:
     st.info("Totales Operativos no contiene registros.")
     st.stop()
