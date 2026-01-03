@@ -102,20 +102,18 @@ else:
         "Si se registra de nuevo, el valor anterior se sustituye."
     )
 # =====================================================
-# INVENTARIO MENSUAL · RESUMEN
+# INVENTARIO MENSUAL · LECTURA REAL
 # =====================================================
 
 st.divider()
 st.subheader("Inventario mensual")
 
-# -------------------------
-# MAPA MESES ESPAÑOL
-# -------------------------
-MESES_ES = {
-    "Enero": 1, "Febrero": 2, "Marzo": 3, "Abril": 4,
-    "Mayo": 5, "Junio": 6, "Julio": 7, "Agosto": 8,
-    "Septiembre": 9, "Octubre": 10, "Noviembre": 11, "Diciembre": 12
-}
+# Copia segura
+df_inv = df.copy()
+
+# Forzar tipos
+df_inv["Año"] = pd.to_numeric(df_inv["Año"], errors="coerce")
+df_inv["Inventario (€)"] = pd.to_numeric(df_inv["Inventario (€)"], errors="coerce")
 
 # -------------------------
 # SELECTORES
@@ -125,45 +123,41 @@ c1, c2 = st.columns(2)
 with c1:
     anio_sel = st.selectbox(
         "Año",
-        sorted(df["Año"].unique()),
-        index=len(sorted(df["Año"].unique())) - 1,
-        key="anio_inventario_mensual"
+        sorted(df_inv["Año"].dropna().unique()),
+        index=len(sorted(df_inv["Año"].dropna().unique())) - 1,
+        key="anio_inventario"
     )
 
 with c2:
     mes_sel = st.selectbox(
         "Mes",
-        options=["Todos"] + list(MESES_ES.keys()),
-        key="mes_inventario_mensual"
+        options=["Todos"] + sorted(df_inv["Mes"].dropna().unique()),
+        key="mes_inventario"
     )
 
 # -------------------------
-# FILTRADO
+# FILTRADO REAL (SIN RECONSTRUIR)
 # -------------------------
-df_filtrado = df[df["Año"] == anio_sel]
+df_filtrado = df_inv[df_inv["Año"] == anio_sel]
 
 if mes_sel != "Todos":
     df_filtrado = df_filtrado[df_filtrado["Mes"] == mes_sel]
 
 # -------------------------
-# TABLA RESULTADO
+# TABLA
 # -------------------------
-df_resultado = (
-    df_filtrado
-    .sort_values("Mes")
-    [["Mes", "Inventario (€)", "Fecha registro"]]
-)
-
 st.dataframe(
-    df_resultado,
+    df_filtrado.sort_values("Fecha registro"),
     hide_index=True,
     use_container_width=True
 )
 
 # -------------------------
-# MÉTRICA CLAVE
+# MÉTRICA CORRECTA
 # -------------------------
-st.metric(
-    "Valor inventario período seleccionado",
-    f"{df_resultado['Inventario (€)'].sum():,.2f} €"
-)
+if not df_filtrado.empty:
+    valor_actual = df_filtrado.iloc[-1]["Inventario (€)"]
+    st.metric(
+        "Inventario vigente (€)",
+        f"{valor_actual:,.2f} €"
+    )
