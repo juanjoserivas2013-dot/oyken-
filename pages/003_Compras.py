@@ -237,10 +237,16 @@ with st.container(border=True):
             st.success("Compra eliminada")
 
 # =========================================================
-# COMPRAS MENSUALES
+# COMPRAS MENSUALES · CONSOLIDADO (FASE 1)
 # =========================================================
+
 st.divider()
 st.subheader("Compras mensuales")
+
+from pathlib import Path
+from datetime import datetime
+
+COMPRAS_MENSUALES_FILE = Path("compras_mensuales.csv")
 
 # -------------------------
 # MAPA MESES ESPAÑOL
@@ -252,14 +258,20 @@ MESES_ES = {
 }
 
 # -------------------------
-# PREPARAR DATOS
+# PREPARAR DATOS OPERATIVOS
 # -------------------------
 df_compras = st.session_state.compras.copy()
+
 df_compras["Fecha"] = pd.to_datetime(
     df_compras["Fecha"],
     dayfirst=True,
     errors="coerce"
 )
+
+df_compras["Coste (€)"] = pd.to_numeric(
+    df_compras["Coste (€)"],
+    errors="coerce"
+).fillna(0)
 
 # -------------------------
 # SELECTORES
@@ -267,10 +279,13 @@ df_compras["Fecha"] = pd.to_datetime(
 c1, c2 = st.columns(2)
 
 with c1:
+    anios_disponibles = sorted(
+        df_compras["Fecha"].dt.year.dropna().unique()
+    )
     anio_sel = st.selectbox(
         "Año",
-        sorted(df_compras["Fecha"].dt.year.dropna().unique()),
-        index=len(sorted(df_compras["Fecha"].dt.year.dropna().unique())) - 1,
+        anios_disponibles,
+        index=len(anios_disponibles) - 1,
         key="anio_compras_mensual"
     )
 
@@ -283,15 +298,19 @@ with c2:
     )
 
 # -------------------------
-# FILTRADO
+# FILTRADO OPERATIVO
 # -------------------------
-df_filtrado = df_compras[df_compras["Fecha"].dt.year == anio_sel]
+df_filtrado = df_compras[
+    df_compras["Fecha"].dt.year == anio_sel
+]
 
 if mes_sel != 0:
-    df_filtrado = df_filtrado[df_filtrado["Fecha"].dt.month == mes_sel]
+    df_filtrado = df_filtrado[
+        df_filtrado["Fecha"].dt.month == mes_sel
+    ]
 
 # -------------------------
-# CONSTRUCCIÓN TABLA
+# CONSTRUCCIÓN TABLA MENSUAL (VISIBLE)
 # -------------------------
 datos_meses = []
 
@@ -321,3 +340,42 @@ st.metric(
     f"{tabla_compras_mensuales['Compras del mes (€)'].sum():,.2f} €"
 )
 
+# -------------------------
+# GUARDAR CSV MENSUAL (CANÓNICO)
+# -------------------------
+
+# Crear CSV si no existe
+if not COMPRAS_MENSUALES_FILE.exists():
+    pd.DataFrame(
+        columns=["anio", "mes", "compras_total_eur", "fecha_actualizacion"]
+    ).to_csv(COMPRAS_MENSUALES_FILE, index=False)
+
+# Preparar datos a guardar (desde la tabla visible)
+df_csv = tabla_compras_mensuales.copy()
+
+df_csv["mes"] = df_csv["Mes"].map(
+    {v: k for k, v in MESES_ES.items()}
+)
+df_csv["anio"] = anio_sel
+df_csv["compras_total_eur"] = df_csv["Compras del mes (€)"]
+
+df_csv = df_csv[["anio", "mes", "compras_total_eur"]]
+
+# Cargar histórico
+df_hist = pd.read_csv(COMPRAS_MENSUALES_FILE)
+
+# Eliminar meses existentes del mismo año (overwrite limpio)
+df_hist = df_hist[
+    ~(
+        (df_hist["anio"] == anio_sel) &
+        (df_hist["mes"].isin(df_csv["mes"]))
+    )
+]
+
+# Añadir timestamp
+df_csv["fecha_actualizacion"] = datetime.now()
+
+# Guardar final
+df_final = pd.concat([df_hist, df_csv], ignore_index=True)
+df_final = df_final.sort_values(["anio", "mes"])
+df_final.to_csv(COMPRAS_MENSUALES_FILE, index=False)
