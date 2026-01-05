@@ -11,43 +11,50 @@ st.set_page_config(
 )
 
 st.title("OYKEN · EBITDA")
-st.caption("Lectura consolidada de rentabilidad operativa")
+st.caption("Rentabilidad operativa consolidada")
 
 # =========================
-# ARCHIVOS FUENTE (CANÓNICOS)
+# ARCHIVOS CANÓNICOS
 # =========================
 VENTAS_FILE = Path("ventas_mensuales.csv")
 COMPRAS_FILE = Path("compras_mensuales.csv")
+RRHH_FILE = Path("rrhh_mensual.csv")
+
+if not VENTAS_FILE.exists() or not COMPRAS_FILE.exists() or not RRHH_FILE.exists():
+    st.warning("Aún no existen cierres mensuales suficientes.")
+    st.stop()
 
 # =========================
 # CARGA DE DATOS
 # =========================
-if not VENTAS_FILE.exists() or not COMPRAS_FILE.exists():
-    st.warning("Aún no existen cierres mensuales suficientes.")
-    st.stop()
-
-df_ventas = pd.read_csv(VENTAS_FILE)
-df_compras = pd.read_csv(COMPRAS_FILE)
+df_v = pd.read_csv(VENTAS_FILE)
+df_c = pd.read_csv(COMPRAS_FILE)
+df_r = pd.read_csv(RRHH_FILE)
 
 # Normalizar tipos
-for df in [df_ventas, df_compras]:
+for df in [df_v, df_c, df_r]:
     df["anio"] = pd.to_numeric(df["anio"], errors="coerce")
     df["mes"] = pd.to_numeric(df["mes"], errors="coerce")
 
-df_ventas["ventas_total_eur"] = pd.to_numeric(
-    df_ventas["ventas_total_eur"], errors="coerce"
+df_v["ventas_total_eur"] = pd.to_numeric(
+    df_v["ventas_total_eur"], errors="coerce"
 ).fillna(0)
 
-df_compras["compras_total_eur"] = pd.to_numeric(
-    df_compras["compras_total_eur"], errors="coerce"
+df_c["compras_total_eur"] = pd.to_numeric(
+    df_c["compras_total_eur"], errors="coerce"
+).fillna(0)
+
+df_r["rrhh_total_eur"] = pd.to_numeric(
+    df_r["rrhh_total_eur"], errors="coerce"
 ).fillna(0)
 
 # =========================
 # SELECTORES
 # =========================
 anios_disponibles = sorted(
-    set(df_ventas["anio"].dropna().unique())
-    | set(df_compras["anio"].dropna().unique())
+    set(df_v["anio"].dropna().unique())
+    | set(df_c["anio"].dropna().unique())
+    | set(df_r["anio"].dropna().unique())
 )
 
 if not anios_disponibles:
@@ -74,21 +81,21 @@ with c2:
     )
 
 # =========================
-# FILTRADO
+# FILTRADO POR AÑO / MES
 # =========================
-df_v = df_ventas[df_ventas["anio"] == anio_sel]
-df_c = df_compras[df_compras["anio"] == anio_sel]
+df_v = df_v[df_v["anio"] == anio_sel]
+df_c = df_c[df_c["anio"] == anio_sel]
+df_r = df_r[df_r["anio"] == anio_sel]
 
 if mes_sel != 0:
     df_v = df_v[df_v["mes"] == mes_sel]
     df_c = df_c[df_c["mes"] == mes_sel]
+    df_r = df_r[df_r["mes"] == mes_sel]
 
 # =========================
-# CRUCE Y CÁLCULO EBITDA
+# CRUCE MENSUAL Y CÁLCULO
 # =========================
-df_base = pd.DataFrame({
-    "mes": range(1, 13)
-})
+df_base = pd.DataFrame({"mes": range(1, 13)})
 
 df_base = df_base.merge(
     df_v[["mes", "ventas_total_eur"]],
@@ -102,16 +109,26 @@ df_base = df_base.merge(
     how="left"
 )
 
-df_base["ventas_total_eur"] = df_base["ventas_total_eur"].fillna(0)
-df_base["compras_total_eur"] = df_base["compras_total_eur"].fillna(0)
-
-df_base["ebitda_eur"] = (
-    df_base["ventas_total_eur"] - df_base["compras_total_eur"]
+df_base = df_base.merge(
+    df_r[["mes", "rrhh_total_eur"]],
+    on="mes",
+    how="left"
 )
 
-# Aplicar filtro de mes visual
+df_base = df_base.fillna(0)
+
+df_base["ebitda_eur"] = (
+    df_base["ventas_total_eur"]
+    - df_base["compras_total_eur"]
+    - df_base["rrhh_total_eur"]
+)
+
+# Aplicar filtro visual de mes
 if mes_sel != 0:
     df_base = df_base[df_base["mes"] == mes_sel]
+
+# Orden cronológico correcto
+df_base = df_base.sort_values("mes")
 
 # =========================
 # PRESENTACIÓN TABLA
@@ -128,10 +145,12 @@ tabla_ebitda = df_base[[
     "Mes",
     "ventas_total_eur",
     "compras_total_eur",
+    "rrhh_total_eur",
     "ebitda_eur"
 ]].rename(columns={
     "ventas_total_eur": "Ventas (€)",
     "compras_total_eur": "Compras (€)",
+    "rrhh_total_eur": "RRHH (€)",
     "ebitda_eur": "EBITDA (€)"
 })
 
