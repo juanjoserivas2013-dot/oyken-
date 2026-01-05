@@ -143,10 +143,16 @@ if st.button("Eliminar gasto"):
     st.success("Gasto eliminado correctamente.")
     
 # =========================================================
-# GASTOS MENSUALES
+# GASTOS MENSUALES · CONSOLIDADO (FASE 1)
 # =========================================================
+
 st.divider()
 st.subheader("Gastos mensuales")
+
+from pathlib import Path
+from datetime import datetime
+
+GASTOS_MENSUALES_FILE = Path("gastos_mensuales.csv")
 
 # -------------------------
 # MAPA MESES ESPAÑOL
@@ -158,14 +164,16 @@ MESES_ES = {
 }
 
 # -------------------------
-# PREPARAR DATOS
+# PREPARAR DATOS OPERATIVOS
 # -------------------------
 df_gastos = st.session_state.gastos.copy()
+
 df_gastos["Fecha"] = pd.to_datetime(
     df_gastos["Fecha"],
     dayfirst=True,
     errors="coerce"
 )
+
 df_gastos["Coste (€)"] = pd.to_numeric(
     df_gastos["Coste (€)"],
     errors="coerce"
@@ -176,11 +184,19 @@ df_gastos["Coste (€)"] = pd.to_numeric(
 # -------------------------
 c1, c2 = st.columns(2)
 
+anios_disponibles = sorted(
+    df_gastos["Fecha"].dt.year.dropna().unique()
+)
+
+if not anios_disponibles:
+    st.info("Aún no hay gastos registrados.")
+    st.stop()
+
 with c1:
     anio_sel = st.selectbox(
         "Año",
-        sorted(df_gastos["Fecha"].dt.year.dropna().unique()),
-        index=len(sorted(df_gastos["Fecha"].dt.year.dropna().unique())) - 1,
+        anios_disponibles,
+        index=len(anios_disponibles) - 1,
         key="anio_gastos_mensual"
     )
 
@@ -193,15 +209,19 @@ with c2:
     )
 
 # -------------------------
-# FILTRADO
+# FILTRADO OPERATIVO
 # -------------------------
-df_filtrado = df_gastos[df_gastos["Fecha"].dt.year == anio_sel]
+df_filtrado = df_gastos[
+    df_gastos["Fecha"].dt.year == anio_sel
+]
 
 if mes_sel != 0:
-    df_filtrado = df_filtrado[df_filtrado["Fecha"].dt.month == mes_sel]
+    df_filtrado = df_filtrado[
+        df_filtrado["Fecha"].dt.month == mes_sel
+    ]
 
 # -------------------------
-# CONSTRUCCIÓN TABLA
+# CONSTRUCCIÓN TABLA VISIBLE
 # -------------------------
 datos_meses = []
 
@@ -230,3 +250,42 @@ st.metric(
     "Total período seleccionado",
     f"{tabla_gastos['Gastos del mes (€)'].sum():,.2f} €"
 )
+
+# -------------------------
+# GUARDAR CSV MENSUAL (CANÓNICO)
+# -------------------------
+
+# Crear CSV si no existe
+if not GASTOS_MENSUALES_FILE.exists():
+    pd.DataFrame(
+        columns=["anio", "mes", "gastos_total_eur", "fecha_actualizacion"]
+    ).to_csv(GASTOS_MENSUALES_FILE, index=False)
+
+# Preparar datos desde la tabla visible
+df_csv = tabla_gastos.copy()
+
+df_csv["mes"] = df_csv["Mes"].map(MESES_ES)
+df_csv["mes"] = df_csv["Mes"].map(
+    {v: k for k, v in MESES_ES.items()}
+)
+df_csv["anio"] = anio_sel
+df_csv["gastos_total_eur"] = df_csv["Gastos del mes (€)"]
+
+df_csv = df_csv[["anio", "mes", "gastos_total_eur"]]
+
+# Cargar histórico
+df_hist = pd.read_csv(GASTOS_MENSUALES_FILE)
+
+# Overwrite limpio por año + mes
+df_hist = df_hist[
+    ~(
+        (df_hist["anio"] == anio_sel) &
+        (df_hist["mes"].isin(df_csv["mes"]))
+    )
+]
+
+df_csv["fecha_actualizacion"] = datetime.now()
+
+df_final = pd.concat([df_hist, df_csv], ignore_index=True)
+df_final = df_final.sort_values(["anio", "mes"])
+df_final.to_csv(GASTOS_MENSUALES_FILE, index=False)
