@@ -33,6 +33,20 @@ def cv_turno_seguro(ventas, tickets):
     tm = np.where(tickets > 0, ventas / tickets, np.nan)
     return np.nanstd(tm)
 
+def render_bloque(titulo, metrica_label, metrica_valor, periodo, texto):
+    st.subheader(titulo.upper())
+    st.markdown(f"**{metrica_label.upper()}**")
+    st.markdown(f"### {metrica_valor}")
+    st.caption(f"Periodo analizado: {periodo}")
+    st.markdown(texto)
+    st.divider()
+
+def render_bloque_no_disponible(titulo, motivo):
+    st.subheader(titulo.upper())
+    st.caption("Bloque no disponible")
+    st.markdown(motivo)
+    st.divider()
+
 # =========================
 # VARIABLES BASE
 # =========================
@@ -59,18 +73,7 @@ df_10 = df.tail(10)
 df_15 = df.tail(15)
 
 # =========================
-# RENDER PREMIUM
-# =========================
-def render_bloque(titulo, metrica_label, metrica_valor, periodo, texto):
-    st.subheader(titulo.upper())
-    st.markdown(f"**{metrica_label.upper()}**")
-    st.markdown(f"### {metrica_valor}")
-    st.caption(f"Periodo analizado: {periodo}")
-    st.markdown(texto)
-    st.divider()
-
-# =========================
-# BLOQUE 1 · DIRECCIÓN DEL NEGOCIO
+# 1 · DIRECCIÓN DEL NEGOCIO
 # =========================
 if len(df_semana) >= 5:
     media_actual = df_semana["ventas_total_eur"].mean()
@@ -102,9 +105,15 @@ en el comportamiento reciente del sistema.
         rango_fechas(df_semana),
         texto
     )
+else:
+    render_bloque_no_disponible(
+        "Dirección del negocio",
+        "Este bloque analiza la dirección del negocio a partir de la semana en curso. "
+        "Actualmente no hay suficientes días operados dentro de la semana para una lectura estructural fiable."
+    )
 
 # =========================
-# BLOQUE 2 · CONSISTENCIA DEL RESULTADO
+# 2 · CONSISTENCIA DEL RESULTADO
 # =========================
 if len(df_7) >= 7 and df_7["ventas_total_eur"].mean() > 0:
     cv_ventas = (
@@ -129,16 +138,21 @@ describiendo el nivel de estabilidad interna del sistema operativo.
         rango_fechas(df_7),
         texto
     )
+else:
+    render_bloque_no_disponible(
+        "Consistencia del resultado",
+        "Este bloque requiere un mínimo de 7 días consecutivos de operación para evaluar estabilidad y consistencia. "
+        "La base actual aún no alcanza ese umbral."
+    )
 
 # =========================
-# BLOQUE 3 · DÍAS FUERTES Y DÉBILES
+# 3 · DÍAS FUERTES Y DÉBILES
 # =========================
 if len(df_15) >= 15:
     df_15 = df_15.copy()
     df_15["weekday"] = df_15["fecha"].dt.day_name()
 
     media_dia = df_15.groupby("weekday")["ventas_total_eur"].mean()
-
     dia_fuerte = media_dia.idxmax()
     dia_debil = media_dia.idxmin()
 
@@ -158,9 +172,15 @@ operativo.
         rango_fechas(df_15),
         texto
     )
+else:
+    render_bloque_no_disponible(
+        "Días fuertes y días débiles",
+        "Este bloque identifica patrones recurrentes por día de la semana. "
+        "El análisis requiere al menos 15 días operados para evitar conclusiones espurias."
+    )
 
 # =========================
-# BLOQUE 4 · ESTABILIDAD DEL TICKET MEDIO
+# 4 · ESTABILIDAD DEL TICKET MEDIO
 # =========================
 if len(df_7) >= 7 and df_7["ticket_medio"].mean() > 0:
     cv_ticket = (
@@ -184,9 +204,14 @@ reflejando el grado de estabilidad del comportamiento de venta.
         rango_fechas(df_7),
         texto
     )
+else:
+    render_bloque_no_disponible(
+        "Estabilidad del ticket medio",
+        "Este bloque requiere al menos 7 días de operación para evaluar la regularidad del ingreso por operación."
+    )
 
 # =========================
-# BLOQUE 5 · VOLATILIDAD POR TURNOS
+# 5 · VOLATILIDAD POR TURNOS
 # =========================
 if len(df_7) >= 7:
     tabla_turnos = [
@@ -212,9 +237,14 @@ fricción en la previsibilidad del resultado diario.
         rango_fechas(df_7),
         texto
     )
+else:
+    render_bloque_no_disponible(
+        "Volatilidad por turnos",
+        "Este bloque evalúa la estabilidad por franja horaria y requiere un mínimo de 7 días operados."
+    )
 
 # =========================
-# BLOQUE 6 · DEPENDENCIA DE PICOS
+# 6 · DEPENDENCIA DE PICOS
 # =========================
 if len(df_10) >= 10:
     media = df_10["ventas_total_eur"].mean()
@@ -243,6 +273,11 @@ describe el grado de robustez estructural del sistema.
         f"{pct_picos:.1f} %",
         rango_fechas(df_10),
         texto
+    )
+else:
+    render_bloque_no_disponible(
+        "Dependencia de picos",
+        "Este bloque analiza concentración de ventas excepcionales y requiere al menos 10 días de operación."
     )
 
 # =========================
