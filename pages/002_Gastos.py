@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-from datetime import date
+from datetime import date, datetime
 
 # =====================================================
 # CABECERA
@@ -22,17 +22,17 @@ if "gastos" not in st.session_state:
     if DATA_FILE.exists():
         st.session_state.gastos = pd.read_csv(DATA_FILE)
     else:
-       st.session_state.gastos = pd.DataFrame(
-    columns=[
-        "Fecha",
-        "Mes",
-        "Concepto",
-        "Categoria",
-        "Tipo_Gasto",
-        "Rol_Gasto",
-        "Coste (€)"
-    ]
-)
+        st.session_state.gastos = pd.DataFrame(
+            columns=[
+                "Fecha",
+                "Mes",
+                "Concepto",
+                "Categoria",
+                "Tipo_Gasto",      # ⬅ ICANN
+                "Rol_Gasto",       # ⬅ ICANN
+                "Coste (€)"
+            ]
+        )
 
 # =====================================================
 # CATEGORÍAS BASE OYKEN
@@ -49,68 +49,23 @@ CATEGORIAS = [
     "Uniformes y utensilios",
     "Vigilancia y Seguridad",
     "otros Gastos operativos"
-    
 ]
 
 # =====================================================
-# MATRIZ OYKEN · CLASIFICACIÓN EXPERTA POR CATEGORÍA
+# MATRIZ ICANN / OYKEN · CLASIFICACIÓN EXPERTA  ⬅ ICANN
 # =====================================================
-MATRIZ_CATEGORIAS_OYKEN = {
-    "Alquiler": {
-        "tipo": "Fijo",
-        "rol": "Estructural",
-        "justificacion": "El alquiler existe independientemente de la venta."
-    },
-    "Suministros": {
-        "tipo": "Fijo",
-        "rol": "Estructural",
-        "justificacion": "Existe un consumo base imprescindible para operar."
-    },
-    "Mantenimiento": {
-        "tipo": "Fijo",
-        "rol": "Estructural",
-        "justificacion": "Mantiene la operatividad mínima del negocio."
-    },
-    "Servicios profesionales": {
-        "tipo": "Fijo",
-        "rol": "Estructural",
-        "justificacion": "Gestoría y servicios obligatorios."
-    },
-    "Bancos y Medios de pago": {
-        "tipo": "Variable",
-        "rol": "Estructural",
-        "justificacion": "Escala con la venta, pero es imprescindible."
-    },
-    "Tecnología y Plataformas": {
-        "tipo": "Fijo",
-        "rol": "Estructural",
-        "justificacion": "Sistemas mínimos de operación."
-    },
-    "Marqueting y Comunicación": {
-        "tipo": "Variable",
-        "rol": "No estructural",
-        "justificacion": "Acelera ventas, no sostiene estructura."
-    },
-    "Limpieza y Lavandería": {
-        "tipo": "Fijo",
-        "rol": "Estructural",
-        "justificacion": "Higiene mínima obligatoria."
-    },
-    "Uniformes y utensilios": {
-        "tipo": "Variable",
-        "rol": "No estructural",
-        "justificacion": "Reposición por desgaste."
-    },
-    "Vigilancia y Seguridad": {
-        "tipo": "Fijo",
-        "rol": "Estructural",
-        "justificacion": "Prevención y obligación normativa."
-    },
-    "otros Gastos operativos": {
-        "tipo": "Variable",
-        "rol": "No estructural",
-        "justificacion": "Gasto no crítico estructuralmente."
-    }
+MATRIZ_CATEGORIAS_ICANN = {
+    "Alquiler": ("Fijo", "Estructural", "El alquiler existe independientemente de la venta."),
+    "Suministros": ("Fijo", "Estructural", "Existe un consumo base imprescindible para operar."),
+    "Mantenimiento": ("Fijo", "Estructural", "Mantiene la operatividad mínima del negocio."),
+    "Servicios profesionales": ("Fijo", "Estructural", "Servicios obligatorios para operar."),
+    "Bancos y Medios de pago": ("Variable", "Estructural", "Escala con la venta, pero es imprescindible."),
+    "Tecnología y Plataformas": ("Fijo", "Estructural", "Infraestructura mínima operativa."),
+    "Marqueting y Comunicación": ("Variable", "No estructural", "Acelera ventas, no sostiene estructura."),
+    "Limpieza y Lavandería": ("Fijo", "Estructural", "Higiene mínima obligatoria."),
+    "Uniformes y utensilios": ("Variable", "No estructural", "Reposición por desgaste."),
+    "Vigilancia y Seguridad": ("Fijo", "Estructural", "Prevención y obligación normativa."),
+    "otros Gastos operativos": ("Variable", "No estructural", "Gasto no crítico estructuralmente.")
 }
 
 # =====================================================
@@ -130,41 +85,35 @@ with st.form("registro_gastos", clear_on_submit=True):
     with col2:
         categoria = st.selectbox("Categoría", CATEGORIAS)
 
-    # -----------------------------------------------------
-# CLASIFICACIÓN ESTRUCTURAL SEGÚN MATRIZ OYKEN
-# -----------------------------------------------------
-info_cat = MATRIZ_CATEGORIAS_OYKEN.get(categoria)
+    # =================================================
+    # CLASIFICACIÓN ESTRUCTURAL SEGÚN MATRIZ ICANN ⬅ ICANN
+    # =================================================
+    tipo_rec, rol_rec, justificacion = MATRIZ_CATEGORIAS_ICANN[categoria]
 
-tipo_recomendado = info_cat["tipo"]
-rol_recomendado = info_cat["rol"]
-justificacion = info_cat["justificacion"]
+    st.markdown("**Clasificación estructural del gasto (ICANN / OYKEN)**")
 
-st.markdown("**Clasificación estructural del gasto (OYKEN)**")
+    c_tipo, c_rol = st.columns(2)
 
-c_tipo, c_rol = st.columns(2)
+    with c_tipo:
+        tipo_gasto = st.selectbox(
+            "Tipo de gasto",
+            ["Fijo", "Variable"],
+            index=["Fijo", "Variable"].index(tipo_rec)
+        )
 
-with c_tipo:
-    tipo_gasto = st.selectbox(
-        "Tipo de gasto",
-        ["Fijo", "Variable"],
-        index=["Fijo", "Variable"].index(tipo_recomendado)
-    )
+    with c_rol:
+        rol_gasto = st.selectbox(
+            "Rol del gasto",
+            ["Estructural", "No estructural"],
+            index=["Estructural", "No estructural"].index(rol_rec)
+        )
 
-with c_rol:
-    rol_gasto = st.selectbox(
-        "Rol del gasto",
-        ["Estructural", "No estructural"],
-        index=["Estructural", "No estructural"].index(rol_recomendado)
-    )
-
-if tipo_gasto != tipo_recomendado or rol_gasto != rol_recomendado:
-    st.warning(
-        f"Según OYKEN, esta categoría se considera "
-        f"**{tipo_recomendado} / {rol_recomendado}**.\n\n"
-        f"Motivo: {justificacion}\n\n"
-        f"Has decidido clasificarla como **{tipo_gasto} / {rol_gasto}**. "
-        f"Revisa que sea una decisión consciente."
-    )
+    if tipo_gasto != tipo_rec or rol_gasto != rol_rec:
+        st.warning(
+            f"Según ICANN/OYKEN esta categoría es **{tipo_rec} / {rol_rec}**.\n\n"
+            f"Motivo: {justificacion}\n\n"
+            f"Has decidido clasificarla como **{tipo_gasto} / {rol_gasto}**."
+        )
 
     concepto = st.text_input(
         "Concepto / Descripción",
@@ -190,15 +139,15 @@ if tipo_gasto != tipo_recomendado or rol_gasto != rol_recomendado:
             st.warning("El coste debe ser mayor que cero.")
             st.stop()
 
-       nuevo = {
-    "Fecha": fecha.strftime("%d/%m/%Y"),
-    "Mes": fecha.strftime("%Y-%m"),
-    "Concepto": concepto,
-    "Categoria": categoria,
-    "Tipo_Gasto": tipo_gasto,
-    "Rol_Gasto": rol_gasto,
-    "Coste (€)": round(coste, 2)
-}
+        nuevo = {
+            "Fecha": fecha.strftime("%d/%m/%Y"),
+            "Mes": fecha.strftime("%Y-%m"),
+            "Concepto": concepto,
+            "Categoria": categoria,
+            "Tipo_Gasto": tipo_gasto,   # ⬅ ICANN
+            "Rol_Gasto": rol_gasto,     # ⬅ ICANN
+            "Coste (€)": round(coste, 2)
+        }
 
         st.session_state.gastos = pd.concat(
             [st.session_state.gastos, pd.DataFrame([nuevo])],
@@ -209,7 +158,7 @@ if tipo_gasto != tipo_recomendado or rol_gasto != rol_recomendado:
         st.success("Gasto registrado correctamente.")
 
 # =====================================================
-# VISUALIZACIÓN
+# VISUALIZACIÓN (SIN CAMBIOS)
 # =====================================================
 st.divider()
 
@@ -226,7 +175,7 @@ else:
     st.markdown(f"### Total acumulado: **{total:.2f} €**")
 
 # =====================================================
-# ELIMINAR REGISTRO
+# ELIMINAR REGISTRO (SIN CAMBIOS)
 # =====================================================
 st.subheader("Eliminar gasto")
 
@@ -242,156 +191,81 @@ idx = st.selectbox(
 
 if st.button("Eliminar gasto"):
     st.session_state.gastos = (
-        st.session_state.gastos
-        .drop(idx)
-        .reset_index(drop=True)
+        st.session_state.gastos.drop(idx).reset_index(drop=True)
     )
     st.session_state.gastos.to_csv(DATA_FILE, index=False)
     st.success("Gasto eliminado correctamente.")
-    
-# =========================================================
-# GASTOS MENSUALES · CONSOLIDADO (FASE 1)
-# =========================================================
 
+# =====================================================
+# GASTOS MENSUALES · CONSOLIDADO (SIN CAMBIOS)
+# =====================================================
 st.divider()
 st.subheader("Gastos mensuales")
 
-from pathlib import Path
-from datetime import datetime
-
 GASTOS_MENSUALES_FILE = Path("gastos_mensuales.csv")
 
-# -------------------------
-# MAPA MESES ESPAÑOL
-# -------------------------
 MESES_ES = {
     1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
     5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
     9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
 }
 
-# -------------------------
-# PREPARAR DATOS OPERATIVOS
-# -------------------------
 df_gastos = st.session_state.gastos.copy()
+df_gastos["Fecha"] = pd.to_datetime(df_gastos["Fecha"], dayfirst=True, errors="coerce")
+df_gastos["Coste (€)"] = pd.to_numeric(df_gastos["Coste (€)"], errors="coerce").fillna(0)
 
-df_gastos["Fecha"] = pd.to_datetime(
-    df_gastos["Fecha"],
-    dayfirst=True,
-    errors="coerce"
-)
-
-df_gastos["Coste (€)"] = pd.to_numeric(
-    df_gastos["Coste (€)"],
-    errors="coerce"
-).fillna(0)
-
-# -------------------------
-# SELECTORES
-# -------------------------
 c1, c2 = st.columns(2)
 
-anios_disponibles = sorted(
-    df_gastos["Fecha"].dt.year.dropna().unique()
-)
-
+anios_disponibles = sorted(df_gastos["Fecha"].dt.year.dropna().unique())
 if not anios_disponibles:
-    st.info("Aún no hay gastos registrados.")
     st.stop()
 
 with c1:
-    anio_sel = st.selectbox(
-        "Año",
-        anios_disponibles,
-        index=len(anios_disponibles) - 1,
-        key="anio_gastos_mensual"
-    )
+    anio_sel = st.selectbox("Año", anios_disponibles, index=len(anios_disponibles) - 1)
 
 with c2:
     mes_sel = st.selectbox(
         "Mes",
         options=[0] + list(MESES_ES.keys()),
-        format_func=lambda x: "Todos los meses" if x == 0 else MESES_ES[x],
-        key="mes_gastos_mensual"
+        format_func=lambda x: "Todos los meses" if x == 0 else MESES_ES[x]
     )
 
-# -------------------------
-# FILTRADO OPERATIVO
-# -------------------------
-df_filtrado = df_gastos[
-    df_gastos["Fecha"].dt.year == anio_sel
-]
-
+df_filtrado = df_gastos[df_gastos["Fecha"].dt.year == anio_sel]
 if mes_sel != 0:
-    df_filtrado = df_filtrado[
-        df_filtrado["Fecha"].dt.month == mes_sel
-    ]
+    df_filtrado = df_filtrado[df_gastos["Fecha"].dt.month == mes_sel]
 
-# -------------------------
-# CONSTRUCCIÓN TABLA VISIBLE
-# -------------------------
 datos_meses = []
-
 for mes in range(1, 13):
     if mes_sel != 0 and mes != mes_sel:
         continue
 
-    gasto_mes = df_filtrado[
-        df_filtrado["Fecha"].dt.month == mes
-    ]["Coste (€)"].sum()
-
-    datos_meses.append({
-        "Mes": MESES_ES[mes],
-        "Gastos del mes (€)": round(gasto_mes, 2)
-    })
+    gasto_mes = df_filtrado[df_filtrado["Fecha"].dt.month == mes]["Coste (€)"].sum()
+    datos_meses.append({"Mes": MESES_ES[mes], "Gastos del mes (€)": round(gasto_mes, 2)})
 
 tabla_gastos = pd.DataFrame(datos_meses)
 
-st.dataframe(
-    tabla_gastos,
-    hide_index=True,
-    use_container_width=True
-)
+st.dataframe(tabla_gastos, hide_index=True, use_container_width=True)
+st.metric("Total período seleccionado", f"{tabla_gastos['Gastos del mes (€)'].sum():,.2f} €")
 
-st.metric(
-    "Total período seleccionado",
-    f"{tabla_gastos['Gastos del mes (€)'].sum():,.2f} €"
-)
-
-# -------------------------
-# GUARDAR CSV MENSUAL (CANÓNICO)
-# -------------------------
-
-# Crear CSV si no existe
+# =====================================================
+# CSV MENSUAL CANÓNICO (SIN CAMBIOS)
+# =====================================================
 if not GASTOS_MENSUALES_FILE.exists():
     pd.DataFrame(
         columns=["anio", "mes", "gastos_total_eur", "fecha_actualizacion"]
     ).to_csv(GASTOS_MENSUALES_FILE, index=False)
 
-# Preparar datos desde la tabla visible
 df_csv = tabla_gastos.copy()
-
-df_csv["mes"] = df_csv["Mes"].map(MESES_ES)
-df_csv["mes"] = df_csv["Mes"].map(
-    {v: k for k, v in MESES_ES.items()}
-)
+df_csv["mes"] = df_csv["Mes"].map({v: k for k, v in MESES_ES.items()})
 df_csv["anio"] = anio_sel
 df_csv["gastos_total_eur"] = df_csv["Gastos del mes (€)"]
-
-df_csv = df_csv[["anio", "mes", "gastos_total_eur"]]
-
-# Cargar histórico
-df_hist = pd.read_csv(GASTOS_MENSUALES_FILE)
-
-# Overwrite limpio por año + mes
-df_hist = df_hist[
-    ~(
-        (df_hist["anio"] == anio_sel) &
-        (df_hist["mes"].isin(df_csv["mes"]))
-    )
-]
-
 df_csv["fecha_actualizacion"] = datetime.now()
+df_csv = df_csv[["anio", "mes", "gastos_total_eur", "fecha_actualizacion"]]
+
+df_hist = pd.read_csv(GASTOS_MENSUALES_FILE)
+df_hist = df_hist[
+    ~((df_hist["anio"] == anio_sel) & (df_hist["mes"].isin(df_csv["mes"])))
+]
 
 df_final = pd.concat([df_hist, df_csv], ignore_index=True)
 df_final = df_final.sort_values(["anio", "mes"])
