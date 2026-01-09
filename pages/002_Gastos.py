@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-from datetime import date, datetime
+from datetime import date
 
 # =====================================================
 # CABECERA
@@ -16,25 +16,6 @@ st.caption("Aquí se captura la estructura fija y variable del negocio.")
 DATA_FILE = Path("gastos.csv")
 
 # =====================================================
-# MATRIZ OYKEN · CLASIFICACIÓN BASE
-# =====================================================
-CATEGORIAS_OYKEN = {
-    "Alquiler": ("Fijo", "Estructural"),
-    "Suministros": ("Fijo", "Estructural"),
-    "Mantenimiento": ("Fijo", "Estructural"),
-    "Servicios profesionales": ("Fijo", "Estructural"),
-    "Bancos y Medios de pago": ("Variable", "Estructural"),
-    "Tecnología y Plataformas": ("Fijo", "Estructural"),
-    "Marqueting y Comunicación": ("Variable", "No estructural"),
-    "Limpieza y Lavandería": ("Fijo", "Estructural"),
-    "Uniformes y utensilios": ("Variable", "No estructural"),
-    "Vigilancia y Seguridad": ("Fijo", "Estructural"),
-    "otros Gastos operativos": ("Variable", "No estructural"),
-}
-
-CATEGORIAS = list(CATEGORIAS_OYKEN.keys())
-
-# =====================================================
 # ESTADO
 # =====================================================
 if "gastos" not in st.session_state:
@@ -42,16 +23,26 @@ if "gastos" not in st.session_state:
         st.session_state.gastos = pd.read_csv(DATA_FILE)
     else:
         st.session_state.gastos = pd.DataFrame(
-            columns=[
-                "Fecha",
-                "Mes",
-                "Concepto",
-                "Categoria",
-                "Tipo_Gasto",
-                "Rol_Gasto",
-                "Coste (€)"
-            ]
+            columns=["Fecha", "Mes", "Concepto", "Categoria", "Coste (€)"]
         )
+
+# =====================================================
+# CATEGORÍAS BASE OYKEN
+# =====================================================
+CATEGORIAS = [
+    "Alquiler",
+    "Suministros",
+    "Mantenimiento",
+    "Servicios profesionales",
+    "Bancos y Medios de pago",
+    "Tecnología y Plataformas",
+    "Marqueting y Comunicación",
+    "Limpieza y Lavandería",
+    "Uniformes y utensilios",
+    "Vigilancia y Seguridad",
+    "otros Gastos operativos"
+    
+]
 
 # =====================================================
 # FORMULARIO
@@ -75,38 +66,12 @@ with st.form("registro_gastos", clear_on_submit=True):
         placeholder="Ej: Alquiler local, gestoría, electricidad..."
     )
 
-    # Clasificación por defecto según matriz OYKEN
-    tipo_default, rol_default = CATEGORIAS_OYKEN[categoria]
-
-    c1, c2 = st.columns(2)
-
-    with c1:
-        tipo_gasto = st.selectbox(
-            "Tipo de gasto",
-            ["Fijo", "Variable"],
-            index=["Fijo", "Variable"].index(tipo_default)
-        )
-
-    with c2:
-        rol_gasto = st.selectbox(
-            "Rol del gasto",
-            ["Estructural", "No estructural"],
-            index=["Estructural", "No estructural"].index(rol_default)
-        )
-
     coste = st.number_input(
         "Coste (€)",
         min_value=0.00,
         step=0.01,
         format="%.2f"
     )
-
-    # Aviso OYKEN si se altera el criterio base
-    if (tipo_gasto, rol_gasto) != CATEGORIAS_OYKEN[categoria]:
-        st.info(
-            "Has modificado la clasificación recomendada para esta categoría. "
-            "Asegúrate de que responde a un criterio consciente."
-        )
 
     submitted = st.form_submit_button("Registrar gasto")
 
@@ -125,8 +90,6 @@ with st.form("registro_gastos", clear_on_submit=True):
             "Mes": fecha.strftime("%Y-%m"),
             "Concepto": concepto,
             "Categoria": categoria,
-            "Tipo_Gasto": tipo_gasto,
-            "Rol_Gasto": rol_gasto,
             "Coste (€)": round(coste, 2)
         }
 
@@ -155,16 +118,6 @@ else:
     total = st.session_state.gastos["Coste (€)"].sum()
     st.markdown(f"### Total acumulado: **{total:.2f} €**")
 
-    # Aviso gastos legacy
-    if (
-        st.session_state.gastos["Tipo_Gasto"].isna().any()
-        or st.session_state.gastos["Rol_Gasto"].isna().any()
-    ):
-        st.warning(
-            "Existen gastos antiguos sin clasificación estructural. "
-            "Estos no se utilizarán en el Breakeven."
-        )
-
 # =====================================================
 # ELIMINAR REGISTRO
 # =====================================================
@@ -188,21 +141,31 @@ if st.button("Eliminar gasto"):
     )
     st.session_state.gastos.to_csv(DATA_FILE, index=False)
     st.success("Gasto eliminado correctamente.")
+    
+# =========================================================
+# GASTOS MENSUALES · CONSOLIDADO (FASE 1)
+# =========================================================
 
-# =====================================================
-# GASTOS MENSUALES · CONSOLIDADO
-# =====================================================
 st.divider()
 st.subheader("Gastos mensuales")
 
+from pathlib import Path
+from datetime import datetime
+
 GASTOS_MENSUALES_FILE = Path("gastos_mensuales.csv")
 
+# -------------------------
+# MAPA MESES ESPAÑOL
+# -------------------------
 MESES_ES = {
     1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
     5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
     9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
 }
 
+# -------------------------
+# PREPARAR DATOS OPERATIVOS
+# -------------------------
 df_gastos = st.session_state.gastos.copy()
 
 df_gastos["Fecha"] = pd.to_datetime(
@@ -216,6 +179,9 @@ df_gastos["Coste (€)"] = pd.to_numeric(
     errors="coerce"
 ).fillna(0)
 
+# -------------------------
+# SELECTORES
+# -------------------------
 c1, c2 = st.columns(2)
 
 anios_disponibles = sorted(
@@ -230,16 +196,21 @@ with c1:
     anio_sel = st.selectbox(
         "Año",
         anios_disponibles,
-        index=len(anios_disponibles) - 1
+        index=len(anios_disponibles) - 1,
+        key="anio_gastos_mensual"
     )
 
 with c2:
     mes_sel = st.selectbox(
         "Mes",
         options=[0] + list(MESES_ES.keys()),
-        format_func=lambda x: "Todos los meses" if x == 0 else MESES_ES[x]
+        format_func=lambda x: "Todos los meses" if x == 0 else MESES_ES[x],
+        key="mes_gastos_mensual"
     )
 
+# -------------------------
+# FILTRADO OPERATIVO
+# -------------------------
 df_filtrado = df_gastos[
     df_gastos["Fecha"].dt.year == anio_sel
 ]
@@ -249,6 +220,9 @@ if mes_sel != 0:
         df_filtrado["Fecha"].dt.month == mes_sel
     ]
 
+# -------------------------
+# CONSTRUCCIÓN TABLA VISIBLE
+# -------------------------
 datos_meses = []
 
 for mes in range(1, 13):
@@ -277,30 +251,40 @@ st.metric(
     f"{tabla_gastos['Gastos del mes (€)'].sum():,.2f} €"
 )
 
-# =====================================================
-# GUARDAR CSV MENSUAL CANÓNICO
-# =====================================================
+# -------------------------
+# GUARDAR CSV MENSUAL (CANÓNICO)
+# -------------------------
+
+# Crear CSV si no existe
 if not GASTOS_MENSUALES_FILE.exists():
     pd.DataFrame(
         columns=["anio", "mes", "gastos_total_eur", "fecha_actualizacion"]
     ).to_csv(GASTOS_MENSUALES_FILE, index=False)
 
+# Preparar datos desde la tabla visible
 df_csv = tabla_gastos.copy()
-df_csv["mes"] = df_csv["Mes"].map({v: k for k, v in MESES_ES.items()})
+
+df_csv["mes"] = df_csv["Mes"].map(MESES_ES)
+df_csv["mes"] = df_csv["Mes"].map(
+    {v: k for k, v in MESES_ES.items()}
+)
 df_csv["anio"] = anio_sel
 df_csv["gastos_total_eur"] = df_csv["Gastos del mes (€)"]
-df_csv["fecha_actualizacion"] = datetime.now()
 
-df_csv = df_csv[["anio", "mes", "gastos_total_eur", "fecha_actualizacion"]]
+df_csv = df_csv[["anio", "mes", "gastos_total_eur"]]
 
+# Cargar histórico
 df_hist = pd.read_csv(GASTOS_MENSUALES_FILE)
 
+# Overwrite limpio por año + mes
 df_hist = df_hist[
     ~(
         (df_hist["anio"] == anio_sel) &
         (df_hist["mes"].isin(df_csv["mes"]))
     )
 ]
+
+df_csv["fecha_actualizacion"] = datetime.now()
 
 df_final = pd.concat([df_hist, df_csv], ignore_index=True)
 df_final = df_final.sort_values(["anio", "mes"])
