@@ -22,9 +22,17 @@ if "gastos" not in st.session_state:
     if DATA_FILE.exists():
         st.session_state.gastos = pd.read_csv(DATA_FILE)
     else:
-        st.session_state.gastos = pd.DataFrame(
-            columns=["Fecha", "Mes", "Concepto", "Categoria", "Coste (€)"]
-        )
+       st.session_state.gastos = pd.DataFrame(
+    columns=[
+        "Fecha",
+        "Mes",
+        "Concepto",
+        "Categoria",
+        "Tipo_Gasto",
+        "Rol_Gasto",
+        "Coste (€)"
+    ]
+)
 
 # =====================================================
 # CATEGORÍAS BASE OYKEN
@@ -45,6 +53,67 @@ CATEGORIAS = [
 ]
 
 # =====================================================
+# MATRIZ OYKEN · CLASIFICACIÓN EXPERTA POR CATEGORÍA
+# =====================================================
+MATRIZ_CATEGORIAS_OYKEN = {
+    "Alquiler": {
+        "tipo": "Fijo",
+        "rol": "Estructural",
+        "justificacion": "El alquiler existe independientemente de la venta."
+    },
+    "Suministros": {
+        "tipo": "Fijo",
+        "rol": "Estructural",
+        "justificacion": "Existe un consumo base imprescindible para operar."
+    },
+    "Mantenimiento": {
+        "tipo": "Fijo",
+        "rol": "Estructural",
+        "justificacion": "Mantiene la operatividad mínima del negocio."
+    },
+    "Servicios profesionales": {
+        "tipo": "Fijo",
+        "rol": "Estructural",
+        "justificacion": "Gestoría y servicios obligatorios."
+    },
+    "Bancos y Medios de pago": {
+        "tipo": "Variable",
+        "rol": "Estructural",
+        "justificacion": "Escala con la venta, pero es imprescindible."
+    },
+    "Tecnología y Plataformas": {
+        "tipo": "Fijo",
+        "rol": "Estructural",
+        "justificacion": "Sistemas mínimos de operación."
+    },
+    "Marqueting y Comunicación": {
+        "tipo": "Variable",
+        "rol": "No estructural",
+        "justificacion": "Acelera ventas, no sostiene estructura."
+    },
+    "Limpieza y Lavandería": {
+        "tipo": "Fijo",
+        "rol": "Estructural",
+        "justificacion": "Higiene mínima obligatoria."
+    },
+    "Uniformes y utensilios": {
+        "tipo": "Variable",
+        "rol": "No estructural",
+        "justificacion": "Reposición por desgaste."
+    },
+    "Vigilancia y Seguridad": {
+        "tipo": "Fijo",
+        "rol": "Estructural",
+        "justificacion": "Prevención y obligación normativa."
+    },
+    "otros Gastos operativos": {
+        "tipo": "Variable",
+        "rol": "No estructural",
+        "justificacion": "Gasto no crítico estructuralmente."
+    }
+}
+
+# =====================================================
 # FORMULARIO
 # =====================================================
 with st.form("registro_gastos", clear_on_submit=True):
@@ -60,6 +129,42 @@ with st.form("registro_gastos", clear_on_submit=True):
 
     with col2:
         categoria = st.selectbox("Categoría", CATEGORIAS)
+
+    # -----------------------------------------------------
+# CLASIFICACIÓN ESTRUCTURAL SEGÚN MATRIZ OYKEN
+# -----------------------------------------------------
+info_cat = MATRIZ_CATEGORIAS_OYKEN.get(categoria)
+
+tipo_recomendado = info_cat["tipo"]
+rol_recomendado = info_cat["rol"]
+justificacion = info_cat["justificacion"]
+
+st.markdown("**Clasificación estructural del gasto (OYKEN)**")
+
+c_tipo, c_rol = st.columns(2)
+
+with c_tipo:
+    tipo_gasto = st.selectbox(
+        "Tipo de gasto",
+        ["Fijo", "Variable"],
+        index=["Fijo", "Variable"].index(tipo_recomendado)
+    )
+
+with c_rol:
+    rol_gasto = st.selectbox(
+        "Rol del gasto",
+        ["Estructural", "No estructural"],
+        index=["Estructural", "No estructural"].index(rol_recomendado)
+    )
+
+if tipo_gasto != tipo_recomendado or rol_gasto != rol_recomendado:
+    st.warning(
+        f"Según OYKEN, esta categoría se considera "
+        f"**{tipo_recomendado} / {rol_recomendado}**.\n\n"
+        f"Motivo: {justificacion}\n\n"
+        f"Has decidido clasificarla como **{tipo_gasto} / {rol_gasto}**. "
+        f"Revisa que sea una decisión consciente."
+    )
 
     concepto = st.text_input(
         "Concepto / Descripción",
@@ -85,13 +190,15 @@ with st.form("registro_gastos", clear_on_submit=True):
             st.warning("El coste debe ser mayor que cero.")
             st.stop()
 
-        nuevo = {
-            "Fecha": fecha.strftime("%d/%m/%Y"),
-            "Mes": fecha.strftime("%Y-%m"),
-            "Concepto": concepto,
-            "Categoria": categoria,
-            "Coste (€)": round(coste, 2)
-        }
+       nuevo = {
+    "Fecha": fecha.strftime("%d/%m/%Y"),
+    "Mes": fecha.strftime("%Y-%m"),
+    "Concepto": concepto,
+    "Categoria": categoria,
+    "Tipo_Gasto": tipo_gasto,
+    "Rol_Gasto": rol_gasto,
+    "Coste (€)": round(coste, 2)
+}
 
         st.session_state.gastos = pd.concat(
             [st.session_state.gastos, pd.DataFrame([nuevo])],
