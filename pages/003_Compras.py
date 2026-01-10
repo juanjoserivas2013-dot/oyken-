@@ -363,45 +363,37 @@ COSTE_PRODUCTO_FILE = Path("coste_producto.csv")
 compras_periodo = tabla_compras_mensuales["Compras del mes (€)"].sum()
 
 # -------------------------
-# LECTURA DE VENTAS (DESDE EBITDA / VENTAS)
+# LECTURA DE VENTAS MENSUALES (FUENTE CANÓNICA)
 # -------------------------
-VENTAS_FILE = Path("ventas.csv")
+VENTAS_MENSUALES_FILE = Path("ventas_mensuales.csv")
 
-if not VENTAS_FILE.exists():
+if not VENTAS_MENSUALES_FILE.exists():
     st.warning(
-        "No existen datos de ventas. "
+        "No existen ventas mensuales consolidadas. "
         "No se puede calcular el coste de producto."
     )
     st.stop()
 
-df_ventas = pd.read_csv(VENTAS_FILE)
+df_ventas = pd.read_csv(VENTAS_MENSUALES_FILE)
 
-required_cols = {"Fecha", "Venta (€)"}
+required_cols = {"anio", "mes", "ventas_total_eur"}
 if not required_cols.issubset(df_ventas.columns):
-    st.error("El archivo de ventas no tiene el formato esperado.")
+    st.error("El archivo de ventas mensuales no tiene el formato esperado.")
     st.stop()
 
-df_ventas["Fecha"] = pd.to_datetime(
-    df_ventas["Fecha"],
-    dayfirst=True,
-    errors="coerce"
-)
-
-df_ventas["Venta (€)"] = pd.to_numeric(
-    df_ventas["Venta (€)"],
-    errors="coerce"
-).fillna(0)
-
 ventas_filtradas = df_ventas[
-    df_ventas["Fecha"].dt.year == anio_sel
+    (df_ventas["anio"] == anio_sel) &
+    (
+        (df_ventas["mes"] == mes_sel)
+        if mes_sel != 0 else True
+    )
 ]
 
-if mes_sel != 0:
-    ventas_filtradas = ventas_filtradas[
-        ventas_filtradas["Fecha"].dt.month == mes_sel
-    ]
+ventas_periodo = ventas_filtradas["ventas_total_eur"].sum()
 
-ventas_periodo = ventas_filtradas["Venta (€)"].sum()
+if ventas_periodo <= 0:
+    st.warning("Las ventas del período son cero. No se puede calcular el porcentaje.")
+    st.stop()
 
 # -------------------------
 # VALIDACIÓN
