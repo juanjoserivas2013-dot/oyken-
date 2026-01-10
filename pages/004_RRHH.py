@@ -316,12 +316,19 @@ df_csv = df_csv[["anio", "mes", "rrhh_total_eur"]]
 df_hist = pd.read_csv(RRHH_MENSUAL_FILE)
 
 # Overwrite limpio por año + mes
-df_hist = df_hist[
-    ~(
-        (df_hist["anio"] == anio_sel) &
-        (df_hist["mes"].isin(df_csv["mes"]))
-    )
-]
+# Upsert por (anio, mes): actualizar si existe, insertar si no
+df_hist = df_hist.merge(
+    df_csv,
+    on=["anio", "mes"],
+    how="outer",
+    suffixes=("_old", "")
+)
+
+df_hist["rrhh_total_eur"] = df_hist["rrhh_total_eur"].fillna(
+    df_hist["rrhh_total_eur_old"]
+)
+
+df_hist = df_hist[["anio", "mes", "rrhh_total_eur", "fecha_actualizacion"]]
 
 df_csv["fecha_actualizacion"] = datetime.now()
 
