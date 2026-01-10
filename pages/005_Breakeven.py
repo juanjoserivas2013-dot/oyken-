@@ -25,21 +25,17 @@ with c1:
         min_value=2020,
         max_value=2100,
         value=2026
-        key="be_anio"
     )
 
 with c2:
-MESES_ES = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-]
-
-mes_sel = st.selectbox(
-    "Mes",
-    options=list(range(1, 13)),
-    format_func=lambda x: MESES_ES[x - 1],
-    key="be_mes"
-)
+    mes_sel = st.selectbox(
+        "Mes",
+        options=list(range(1, 13)),
+        format_func=lambda x: [
+            "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+        ][x - 1]
+    )
 
 st.divider()
 
@@ -92,7 +88,7 @@ if row_rrhh.empty:
     st.warning("No hay costes de RRHH para el período seleccionado.")
     st.stop()
 
-coste_rrhh = row_rrhh.iloc[0]["rrhh_total_eur"]
+coste_rrhh = row_rrhh.iloc[0]["coste_rrhh_total"]
 
 # =====================================================
 # COSTES FIJOS · GASTOS
