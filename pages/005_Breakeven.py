@@ -88,7 +88,7 @@ if row_rrhh.empty:
     st.warning("No hay costes de RRHH para el período seleccionado.")
     st.stop()
 
-coste_rrhh = row_rrhh.iloc[0]["coste_rrhh_total"]
+coste_rrhh = row_rrhh.iloc[0]["rrhh_total_eur"]
 
 # =====================================================
 # COSTES FIJOS · GASTOS
