@@ -241,3 +241,27 @@ st.dataframe(
 )
 
 st.divider()
+
+# =====================================================
+# BREAKEVEN OPERATIVO
+# =====================================================
+
+st.subheader("Breakeven operativo")
+st.caption(
+    "Nivel de ventas necesario para cubrir los costes fijos estructurales "
+    "con el margen bruto actual."
+)
+
+if margen_bruto <= 0:
+    st.error("El margen bruto es ≤ 0. No se puede calcular el breakeven.")
+else:
+    breakeven_eur = costes_fijos_totales / margen_bruto
+
+    st.metric(
+        "Ventas necesarias para cubrir estructura",
+        f"{breakeven_eur:,.2f} €"
+    )
+
+    st.caption(
+        "Fórmula: Costes fijos estructurales / Margen bruto estructural"
+    )
