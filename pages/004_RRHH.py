@@ -113,173 +113,98 @@ st.divider()
 # BLOQUE 2 · COSTE DE PERSONAL (NÓMINA)
 # =====================================================
 
-st.subheader("Coste de personal — Nómina")
+st.subheader("Coste de personal — Nómina (económico)")
+st.caption("Cálculo económico aislado de la planificación.")
 
-nominas = []
-
-for _, row in df_puestos_anio.iterrows():
-    salario_mensual = row["Bruto anual (€)"] / 12
-    fila = {"Puesto": row["Puesto"]}
-
-    for mes in MESES:
-        fila[mes] = round(salario_mensual * row[mes], 2)
-
-    nominas.append(fila)
-
-df_nominas = pd.DataFrame(nominas)
-
-if not df_nominas.empty:
-    st.dataframe(df_nominas, hide_index=True, use_container_width=True)
-else:
-    st.info("Sin datos de nómina.")
-
-st.divider()
+SS_EMPRESA = 0.33
 
 # =====================================================
-# BLOQUE 3 · SEGURIDAD SOCIAL Y COSTE EMPRESA
+# BLOQUE 2B · MAPA DE MESES
 # =====================================================
 
-st.subheader("Seguridad Social y coste empresarial")
-
-aplicar_ss = st.checkbox("Aplicar Seguridad Social Empresa (33%)", value=True)
-
-costes = []
-
-for _, row in df_nominas.iterrows():
-    fila = {"Puesto": row["Puesto"]}
-
-    for mes in MESES:
-        nomina = row[mes]
-        ss = nomina * SS_EMPRESA if aplicar_ss else 0.0
-
-        fila[f"{mes} · Nómina"] = round(nomina, 2)
-        fila[f"{mes} · SS"] = round(ss, 2)
-        fila[f"{mes} · Coste Empresa"] = round(nomina + ss, 2)
-
-    costes.append(fila)
-
-df_costes = pd.DataFrame(costes)
-
-if not df_costes.empty:
-    st.dataframe(df_costes, hide_index=True, use_container_width=True)
-else:
-    st.info("Sin datos de coste empresarial.")
-
-st.divider()
-
-# =====================================================
-# BLOQUE 4 · TOTALES MENSUALES RRHH
-# =====================================================
-
-st.subheader("Totales mensuales RRHH")
-
-totales = []
-
-for mes in MESES:
-    nomina = df_costes.get(f"{mes} · Nómina", pd.Series()).sum()
-    ss = df_costes.get(f"{mes} · SS", pd.Series()).sum()
-    coste = df_costes.get(f"{mes} · Coste Empresa", pd.Series()).sum()
-
-    totales.append({
-        "Mes": mes,
-        "Nómina (€)": round(nomina, 2),
-        "Seguridad Social (€)": round(ss, 2),
-        "Coste Empresa (€)": round(coste, 2)
-    })
-
-df_totales = pd.DataFrame(totales)
-
-st.dataframe(df_totales, hide_index=True, use_container_width=True)
-
-st.caption(
-    "Este consolidado alimenta directamente la Cuenta de Resultados."
-)
-# =====================================================
-# TOTALES MENSUALES RRHH · CONSOLIDADO (FASE 1)
-# =====================================================
-
-st.divider()
-st.subheader("Totales mensuales RRHH")
-
-from pathlib import Path
-from datetime import datetime
-
-RRHH_MENSUAL_FILE = Path("rrhh_mensual.csv")
-
-# -------------------------
-# MAPA MESES ESPAÑOL
-# -------------------------
 MESES_ES = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ]
 
-# -------------------------
-# SELECTORES
-# -------------------------
+# =====================================================
+# BLOQUE 2C · SELECTORES ECONÓMICOS
+# =====================================================
+
+st.divider()
+st.subheader("Selector temporal económico")
+
 c1, c2 = st.columns(2)
 
 with c1:
     anios_disponibles = sorted(df_puestos["Año"].unique())
-    anio_sel = st.selectbox(
-        "Año",
+
+    if not anios_disponibles:
+        st.info("No hay estructura de RRHH disponible.")
+        st.stop()
+
+    anio_economico = st.selectbox(
+        "Año económico",
         anios_disponibles,
         index=len(anios_disponibles) - 1,
-        key="anio_rrhh_mensual"
+        key="anio_rrhh_economico"
     )
 
 with c2:
-    mes_sel = st.selectbox(
+    mes_economico = st.selectbox(
         "Mes",
         options=[0] + list(range(1, 13)),
         format_func=lambda x: "Todos los meses" if x == 0 else MESES_ES[x - 1],
-        key="mes_rrhh_mensual"
+        key="mes_rrhh_economico"
     )
 
-# -------------------------
-# PREPARAR COSTES (ROBUSTO)
-# -------------------------
-df_costes_filtrado = df_costes.copy()
+# =====================================================
+# BLOQUE 2D · ORIGEN ECONÓMICO (AISLADO)
+# =====================================================
 
-for col in df_costes_filtrado.columns:
-    if "€" in col:
-        df_costes_filtrado[col] = pd.to_numeric(
-            df_costes_filtrado[col],
-            errors="coerce"
-        ).fillna(0)
+df_puestos_econ = df_puestos[
+    df_puestos["Año"] == anio_economico
+]
 
-# -------------------------
-# CONSTRUCCIÓN TABLA VISIBLE
-# -------------------------
-totales = []
+if df_puestos_econ.empty:
+    st.warning("No hay puestos definidos para este año económico.")
+    st.stop()
+
+# =====================================================
+# BLOQUE 3 · CÁLCULO ROBUSTO MENSUAL
+# =====================================================
+
+datos_meses = []
 
 for i, mes_nombre in enumerate(MESES_ES, start=1):
-    if mes_sel != 0 and i != mes_sel:
+
+    if mes_economico != 0 and i != mes_economico:
         continue
 
-    nomina = df_costes_filtrado.get(
-        f"{mes_nombre} · Nómina",
-        pd.Series(dtype=float)
-    ).sum()
+    total_mes = 0.0
 
-    ss = df_costes_filtrado.get(
-        f"{mes_nombre} · SS",
-        pd.Series(dtype=float)
-    ).sum()
+    for _, row in df_puestos_econ.iterrows():
+        salario_mensual = row["Bruto anual (€)"] / 12
+        personas = row[mes_nombre]
 
-    coste = df_costes_filtrado.get(
-        f"{mes_nombre} · Coste Empresa",
-        pd.Series(dtype=float)
-    ).sum()
+        nomina = salario_mensual * personas
+        ss = nomina * SS_EMPRESA
 
-    totales.append({
+        total_mes += nomina + ss
+
+    datos_meses.append({
         "Mes": mes_nombre,
-        "Nómina (€)": round(nomina, 2),
-        "Seguridad Social (€)": round(ss, 2),
-        "Coste Empresa (€)": round(coste, 2)
+        "Coste RRHH (€)": round(total_mes, 2)
     })
 
-df_totales = pd.DataFrame(totales)
+df_totales = pd.DataFrame(datos_meses)
+
+# =====================================================
+# BLOQUE 4 · TABLA VISIBLE
+# =====================================================
+
+st.divider()
+st.subheader("Totales mensuales RRHH (económico)")
 
 st.dataframe(
     df_totales,
@@ -289,12 +214,16 @@ st.dataframe(
 
 st.metric(
     "Coste RRHH período seleccionado",
-    f"{df_totales['Coste Empresa (€)'].sum():,.2f} €"
+    f"{df_totales['Coste RRHH (€)'].sum():,.2f} €"
 )
 
-# -------------------------
-# GUARDAR CSV MENSUAL (CANÓNICO)
-# -------------------------
+# =====================================================
+# BLOQUE 5 · CSV CANÓNICO MENSUAL
+# =====================================================
+
+from datetime import datetime
+
+RRHH_MENSUAL_FILE = Path("rrhh_mensual.csv")
 
 # Crear CSV si no existe
 if not RRHH_MENSUAL_FILE.exists():
@@ -302,22 +231,22 @@ if not RRHH_MENSUAL_FILE.exists():
         columns=["anio", "mes", "rrhh_total_eur", "fecha_actualizacion"]
     ).to_csv(RRHH_MENSUAL_FILE, index=False)
 
-# Preparar datos desde la tabla visible
+# Preparar datos a guardar
 df_csv = df_totales.copy()
 df_csv["mes"] = df_csv["Mes"].map(
     {v: i + 1 for i, v in enumerate(MESES_ES)}
 )
-df_csv["anio"] = anio_sel
-df_csv["rrhh_total_eur"] = df_csv["Coste Empresa (€)"]
+df_csv["anio"] = anio_economico
+df_csv["rrhh_total_eur"] = df_csv["Coste RRHH (€)"]
 df_csv = df_csv[["anio", "mes", "rrhh_total_eur"]]
 
 # Cargar histórico
 df_hist = pd.read_csv(RRHH_MENSUAL_FILE)
 
-# Overwrite limpio por año + mes
+# Overwrite limpio por (anio, mes)
 df_hist = df_hist[
     ~(
-        (df_hist["anio"] == anio_sel) &
+        (df_hist["anio"] == anio_economico) &
         (df_hist["mes"].isin(df_csv["mes"]))
     )
 ]
@@ -328,3 +257,4 @@ df_final = pd.concat([df_hist, df_csv], ignore_index=True)
 df_final = df_final.sort_values(["anio", "mes"])
 df_final.to_csv(RRHH_MENSUAL_FILE, index=False)
 
+st.success("RRHH económico consolidado correctamente.")
