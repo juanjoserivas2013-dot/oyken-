@@ -129,15 +129,6 @@ margen_bruto = 1 - coste_producto_pct
 
 # ---------- Visualización ----------
 st.markdown("### Margen bruto estructural")
-
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.metric("Ventas (€)", f"{ventas:,.2f}")
-with c2:
-    st.metric("Compras (€)", f"{compras:,.2f}")
-with c3:
-    st.metric("Coste producto", f"{coste_producto_pct:.2%}")
-
 st.metric("Margen bruto", f"{margen_bruto:.2%}")
 
 st.caption(
