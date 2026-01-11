@@ -265,3 +265,39 @@ else:
     st.caption(
         "Fórmula: Costes fijos estructurales / Margen bruto estructural"
     )
+    
+import calendar
+
+# =====================================================
+# BREAKEVEN OPERATIVO DIARIO
+# =====================================================
+
+st.divider()
+st.subheader("Breakeven operativo diario")
+
+if mes_sel == 0:
+    st.info(
+        "El breakeven diario se muestra solo cuando se selecciona "
+        "un mes concreto."
+    )
+else:
+    dias_mes = calendar.monthrange(int(anio_sel), int(mes_sel))[1]
+
+    breakeven_diario = breakeven_eur / dias_mes
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.metric(
+            "Breakeven diario",
+            f"{breakeven_diario:,.2f} € / día"
+        )
+    with c2:
+        st.metric(
+            "Días del mes",
+            dias_mes
+        )
+
+    st.caption(
+        "Distribución homogénea del breakeven mensual "
+        "en los días naturales del mes seleccionado."
+    )
