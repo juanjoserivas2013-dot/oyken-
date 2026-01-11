@@ -33,14 +33,15 @@ with c1:
         step=1
     )
 
+MESES_ES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+]
+
 with c2:
     mes_sel = st.selectbox(
         "Mes",
-        options=list(range(1, 13)),
-        format_func=lambda x: [
-            "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-        ][x - 1]
+        ["Todos los meses"] + MESES_ES
     )
 
 st.divider()
