@@ -201,13 +201,12 @@ total_gastos_fijos = gastos_por_categoria["Coste (€)"].sum()
 costes_fijos_totales = coste_rrhh + total_gastos_fijos
 
 # ---------- VISUAL RESUMEN ----------
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.metric("RRHH (€)", f"{coste_rrhh:,.2f}")
-with c2:
-    st.metric("Otros gastos fijos (€)", f"{total_gastos_fijos:,.2f}")
-with c3:
-    st.metric("Costes fijos totales (€)", f"{costes_fijos_totales:,.2f}")
+st.markdown("### Costes Fijos Estructurales")
+
+st.metric(
+    "Costes fijos totales (€)",
+    f"{costes_fijos_totales:,.2f}"
+)
 
 st.caption(
     "Incluye RRHH + gastos fijos estructurales. "
