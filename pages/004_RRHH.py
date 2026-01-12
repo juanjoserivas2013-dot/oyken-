@@ -140,7 +140,7 @@ datos = []
 
 for i, mes_nombre in enumerate(MESES, start=1):
 
-    if mes_economico != 0 and i != mes_economico:
+    if mes_economico != 0 and i != mes_rrhh_economico:
         continue
 
     total_nomina = 0.0
