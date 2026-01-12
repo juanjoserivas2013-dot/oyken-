@@ -65,6 +65,14 @@ with st.form("alta_puesto", clear_on_submit=True):
         step=1000.0,
         format="%.2f"
     )
+    rol_rrhh = st.selectbox(
+    "Rol del puesto (OYKEN)",
+    [
+        "Estructural mínimo",
+        "Estructural ampliable",
+        "Refuerzo operativo"
+    ]
+)
 
     st.markdown("**Necesidad mensual del puesto (personas)**")
     cols = st.columns(6)
