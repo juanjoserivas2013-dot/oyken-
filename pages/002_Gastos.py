@@ -38,34 +38,142 @@ if "gastos" not in st.session_state:
 # CATEGORÍAS BASE OYKEN
 # =====================================================
 CATEGORIAS = [
+    # 1. Estructurales fijos
     "Alquiler",
-    "Suministros",
-    "Mantenimiento",
-    "Servicios profesionales",
-    "Bancos y Medios de pago",
-    "Tecnología y Plataformas",
-    "Marqueting y Comunicación",
-    "Limpieza y Lavandería",
-    "Uniformes y utensilios",
-    "Vigilancia y Seguridad",
-    "otros Gastos operativos"
+    "Hipoteca / Leasing inmueble",
+    "IBI",
+    "Comunidad",
+    "Licencia de actividad",
+    "Licencia de terraza",
+    "SGAE / Música",
+    "Seguros obligatorios",
+    "Asesoría fiscal",
+    "Asesoría laboral",
+    "Asesoría autonómica",
+    "PRL",
+    "RGPD / LOPD",
+
+    # 2. Estructurales variables
+    "Electricidad",
+    "Agua",
+    "Gas",
+    "Internet",
+    "Telefonía",
+    "Extintores",
+    "Sistemas contra incendios",
+    "Control de plagas",
+    "Análisis sanitarios",
+    "Mantenimiento cocina",
+    "Reparaciones",
+    "Climatización",
+
+    # 3. Recursos Humanos
+    "Salarios base",
+    "Seguridad Social empresa",
+    "Turnos mínimos",
+    "Horas extra",
+    "Eventuales",
+    "Sustituciones",
+
+    # 4. Costes variables directos
+    "Materia prima",
+    "Bebidas",
+    "Packaging",
+    "Consumibles de servicio",
+    "Mermas",
+    "Desperdicio",
+
+    # 5. Plataformas y cobro
+    "Comisiones datáfonos",
+    "Comisiones bancarias",
+    "Plataformas delivery",
+    "Pasarelas de pago",
+
+    # 6. Operativos no estructurales
+    "Limpieza externa",
+    "Lavandería",
+    "Uniformes",
+    "Utensilios",
+    "Papelería",
+
+    # 7. Discrecionales / tácticos
+    "Marketing",
+    "Redes sociales",
+    "Eventos",
+    "Formación no obligatoria",
+    "Consultoría estratégica",
+    "Innovación / pruebas"
 ]
 
 # =====================================================
 # MATRIZ OYKEN · CLASIFICACIÓN EXPERTA
 # =====================================================
 MATRIZ_CATEGORIAS_OYKEN = {
-    "Alquiler": ("Fijo", "Estructural", "El alquiler existe independientemente de la venta."),
-    "Suministros": ("Fijo", "Estructural", "Existe un consumo base imprescindible para operar."),
-    "Mantenimiento": ("Fijo", "Estructural", "Mantiene la operatividad mínima del negocio."),
-    "Servicios profesionales": ("Fijo", "Estructural", "Servicios obligatorios para operar."),
-    "Bancos y Medios de pago": ("Variable", "Estructural", "Escala con la venta, pero es imprescindible."),
-    "Tecnología y Plataformas": ("Fijo", "Estructural", "Infraestructura mínima operativa."),
-    "Marqueting y Comunicación": ("Variable", "No estructural", "Acelera ventas, no sostiene estructura."),
-    "Limpieza y Lavandería": ("Fijo", "Estructural", "Higiene mínima obligatoria."),
-    "Uniformes y utensilios": ("Variable", "No estructural", "Reposición por desgaste."),
-    "Vigilancia y Seguridad": ("Fijo", "Estructural", "Prevención y obligación normativa."),
-    "otros Gastos operativos": ("Variable", "No estructural", "Gasto no crítico estructuralmente.")
+    # 1. Estructurales fijos
+    "Alquiler": ("Fijo", "Estructural", "Ancla del modelo operativo."),
+    "Hipoteca / Leasing inmueble": ("Fijo", "Estructural", "Financiación del espacio."),
+    "IBI": ("Fijo", "Estructural", "Coste país no controlable."),
+    "Comunidad": ("Fijo", "Estructural", "Obligación del inmueble."),
+    "Licencia de actividad": ("Fijo", "Estructural", "Permiso legal."),
+    "Licencia de terraza": ("Fijo", "Estructural", "Uso de vía pública."),
+    "SGAE / Música": ("Fijo", "Estructural", "Derechos obligatorios."),
+    "Seguros obligatorios": ("Fijo", "Estructural", "Blindaje legal."),
+    "Asesoría fiscal": ("Fijo", "Estructural", "Cumplimiento fiscal."),
+    "Asesoría laboral": ("Fijo", "Estructural", "Cumplimiento laboral."),
+    "Asesoría autonómica": ("Fijo", "Estructural", "Sanidad y normativa."),
+    "PRL": ("Fijo", "Estructural", "Prevención obligatoria."),
+    "RGPD / LOPD": ("Fijo", "Estructural", "Protección de datos."),
+
+    # 2. Estructurales variables
+    "Electricidad": ("Variable", "Estructural", "Consumo mínimo operativo."),
+    "Agua": ("Variable", "Estructural", "Consumo sanitario."),
+    "Gas": ("Variable", "Estructural", "Producción térmica."),
+    "Internet": ("Mixto", "Estructural", "Infraestructura digital."),
+    "Telefonía": ("Mixto", "Estructural", "Comunicación operativa."),
+    "Extintores": ("Variable", "Estructural", "Prevención incendios."),
+    "Sistemas contra incendios": ("Variable", "Estructural", "Seguridad."),
+    "Control de plagas": ("Variable", "Estructural", "Higiene obligatoria."),
+    "Análisis sanitarios": ("Variable", "Estructural", "Cumplimiento sanitario."),
+    "Mantenimiento cocina": ("Variable", "Estructural", "Continuidad productiva."),
+    "Reparaciones": ("Variable", "Estructural", "Fragilidad operativa."),
+    "Climatización": ("Variable", "Estructural", "Confort mínimo."),
+
+    # 3. RRHH
+    "Salarios base": ("Fijo", "Estructural", "Suelo humano."),
+    "Seguridad Social empresa": ("Fijo", "Estructural", "Coste país."),
+    "Turnos mínimos": ("Fijo", "Estructural", "Cobertura mínima."),
+    "Horas extra": ("Variable", "Operativo", "Picos de carga."),
+    "Eventuales": ("Variable", "Operativo", "Elasticidad."),
+    "Sustituciones": ("Variable", "Estructural", "Riesgo oculto."),
+
+    # 4. Directos
+    "Materia prima": ("Variable", "Directo", "Margen."),
+    "Bebidas": ("Variable", "Directo", "Cash generator."),
+    "Packaging": ("Variable", "Directo", "Delivery tax."),
+    "Consumibles de servicio": ("Variable", "Directo", "Microcostes."),
+    "Mermas": ("Variable", "Directo", "Ineficiencia."),
+    "Desperdicio": ("Variable", "Directo", "Fuga de margen."),
+
+    # 5. Cobros
+    "Comisiones datáfonos": ("Variable", "Directo", "Impuesto invisible."),
+    "Comisiones bancarias": ("Variable", "Operativo", "Fricción financiera."),
+    "Plataformas delivery": ("Variable", "Directo", "Erosión de margen."),
+    "Pasarelas de pago": ("Variable", "Directo", "Escalabilidad."),
+
+    # 6. Operativos no estructurales
+    "Limpieza externa": ("Variable", "Operativo", "Externalización."),
+    "Lavandería": ("Variable", "Operativo", "Servicio."),
+    "Uniformes": ("Variable", "Operativo", "Imagen."),
+    "Utensilios": ("Variable", "Operativo", "Desgaste."),
+    "Papelería": ("Variable", "Operativo", "Residual."),
+
+    # 7. Discrecionales
+    "Marketing": ("Variable", "No estructural", "Acelerador."),
+    "Redes sociales": ("Variable", "No estructural", "Marca."),
+    "Eventos": ("Variable", "No estructural", "Volatilidad."),
+    "Formación no obligatoria": ("Variable", "No estructural", "Upside."),
+    "Consultoría estratégica": ("Variable", "No estructural", "Retorno esperado."),
+    "Innovación / pruebas": ("Variable", "No estructural", "Riesgo controlado.")
 }
 
 # =====================================================
