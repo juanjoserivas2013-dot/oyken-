@@ -167,38 +167,10 @@ else:
         (df_rrhh["mes"] == int(mes_sel))
     ]
 
-# =====================================================
-# RRHH ESTRUCTURAL (SOLO ROL FIJO) · BREAKEVEN
-# =====================================================
-
-df_rrhh = pd.read_csv("rrhh_puestos.csv")
-
-# Normalizar
-df_rrhh["Año"] = df_rrhh["Año"].astype(int)
-
-# Filtrar SOLO RRHH estructural fijo
-df_rrhh_fijo = df_rrhh[
-    (df_rrhh["Año"] == int(anio_sel)) &
-    (df_rrhh["Rol"] == "Estructural mínimo")
-]
-
-coste_rrhh = 0.0
-
-if not df_rrhh_fijo.empty:
-
-    for _, row in df_rrhh_fijo.iterrows():
-
-        salario_mensual = row["Bruto anual (€)"] / 12
-
-        if mes_sel == 0:  # Todos los meses
-            personas = sum(row[mes] for mes in MESES_ES)
-        else:
-            personas = row[MESES_ES[int(mes_sel) - 1]]
-
-        nomina = salario_mensual * personas
-        ss = nomina * SS_EMPRESA
-
-        coste_rrhh += nomina + ss
+coste_rrhh = (
+    float(row_rrhh["rrhh_total_eur"].sum())
+    if not row_rrhh.empty else 0.0
+)
 
 # ---------- GASTOS FIJOS ----------
 if not GASTOS_FILE.exists():
