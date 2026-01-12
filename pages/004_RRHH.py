@@ -28,7 +28,7 @@ PUESTOS_FILE = Path("rrhh_puestos.csv")
 def cargar_puestos():
     if PUESTOS_FILE.exists():
         return pd.read_csv(PUESTOS_FILE)
-    return pd.DataFrame(columns=["Año", "Puesto", "Rol_RRHH", "Bruto anual (€)", *MESES])
+    return pd.DataFrame(columns=["Año", "Puesto", "Bruto anual (€)", *MESES])
 
 def guardar_puesto(registro: dict):
     df = cargar_puestos()
@@ -65,15 +65,6 @@ with st.form("alta_puesto", clear_on_submit=True):
         step=1000.0,
         format="%.2f"
     )
-    rol_rrhh = st.selectbox(
-    "Rol del puesto (OYKEN)",
-    [
-        "Estructural mínimo",
-        "Estructural ampliable",
-        "Refuerzo operativo"
-    ]
-)
-
 
     st.markdown("**Necesidad mensual del puesto (personas)**")
     cols = st.columns(6)
@@ -94,7 +85,6 @@ with st.form("alta_puesto", clear_on_submit=True):
         registro = {
             "Año": anio_activo,
             "Puesto": puesto.strip(),
-            "Rol_RRHH": rol_rrhh,
             "Bruto anual (€)": float(bruto_anual),
             **necesidad
         }
@@ -208,63 +198,6 @@ for i, mes_nombre in enumerate(MESES_ES, start=1):
     })
 
 df_totales = pd.DataFrame(datos_meses)
-
-# =====================================================
-# BLOQUE 3B · DESGLOSE RRHH POR ROL (OYKEN)
-# =====================================================
-
-st.divider()
-st.subheader("Desglose RRHH por rol (OYKEN)")
-st.caption(
-    "Separación analítica del coste de RRHH por estructura mínima, "
-    "estructura ampliable y refuerzos. No altera el total ni el EBITDA."
-)
-
-datos_roles = []
-
-for i, mes_nombre in enumerate(MESES_ES, start=1):
-
-    if mes_economico != 0 and i != mes_economico:
-        continue
-
-    coste_minimo = 0.0
-    coste_ampliable = 0.0
-    coste_refuerzo = 0.0
-
-    for _, row in df_puestos_econ.iterrows():
-
-        salario_mensual = row["Bruto anual (€)"] / 12
-        personas = row[mes_nombre]
-        rol = row["Rol_RRHH"]
-
-        nomina = salario_mensual * personas
-        ss = nomina * SS_EMPRESA
-        coste_total = nomina + ss
-
-        if rol == "Estructural mínimo":
-            coste_minimo += coste_total
-        elif rol == "Estructural ampliable":
-            coste_ampliable += coste_total
-        elif rol == "Refuerzo operativo":
-            coste_refuerzo += coste_total
-
-    datos_roles.append({
-        "Mes": mes_nombre,
-        "RRHH fijo estructural (€)": round(coste_minimo, 2),
-        "RRHH variable estructural (€)": round(coste_ampliable, 2),
-        "RRHH variable no estructural (€)": round(coste_refuerzo, 2),
-        "RRHH total (€)": round(
-            coste_minimo + coste_ampliable + coste_refuerzo, 2
-        )
-    })
-
-df_rrhh_roles = pd.DataFrame(datos_roles)
-
-st.dataframe(
-    df_rrhh_roles,
-    hide_index=True,
-    use_container_width=True
-)
 
 # =====================================================
 # BLOQUE 4 · TABLA VISIBLE
