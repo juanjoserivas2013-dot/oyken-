@@ -93,6 +93,7 @@ with st.form("alta_puesto", clear_on_submit=True):
         registro = {
             "Año": anio_activo,
             "Puesto": puesto.strip(),
+            "Rol_RRHH": rol_rrhh,
             "Bruto anual (€)": float(bruto_anual),
             **necesidad
         }
