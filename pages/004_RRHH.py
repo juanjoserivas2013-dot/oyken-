@@ -28,7 +28,7 @@ PUESTOS_FILE = Path("rrhh_puestos.csv")
 def cargar_puestos():
     if PUESTOS_FILE.exists():
         return pd.read_csv(PUESTOS_FILE)
-    return pd.DataFrame(columns=["Año", "Puesto", "Rol_RRHH, "Bruto anual (€)", *MESES])
+    return pd.DataFrame(columns=["Año", "Puesto", "Rol_RRHH", "Bruto anual (€)", *MESES])
 
 def guardar_puesto(registro: dict):
     df = cargar_puestos()
