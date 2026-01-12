@@ -144,34 +144,39 @@ st.divider()
 
 st.markdown("### Costes fijos estructurales")
 
-# ---------- RRHH (SOLO ESTRUCTURAL MÍNIMO) ----------
-df_rrhh = pd.read_csv(RRHH_FILE)
 
-df_rrhh["anio"] = df_rrhh["anio"].astype(int)
-df_rrhh["mes"] = df_rrhh["mes"].astype(int)
-df_rrhh["rrhh_total_eur"] = pd.to_numeric(
-    df_rrhh["rrhh_total_eur"], errors="coerce"
-).fillna(0)
+# ---------- RRHH ESTRUCTURAL MÍNIMO ----------
+if not RRHH_PUESTOS_FILE.exists():
+    st.error("No existe la estructura de RRHH.")
+    st.stop()
 
-# 🔒 Filtro OYKEN: solo RRHH fijo estructural
+df_rrhh = pd.read_csv(RRHH_PUESTOS_FILE)
+
+# Filtrar año
+df_rrhh = df_rrhh[df_rrhh["Año"] == int(anio_sel)]
+
+# Filtrar solo estructura mínima
 df_rrhh = df_rrhh[
-    df_rrhh["rol_rrhh"] == "Estructural mínimo"
+    df_rrhh["Rol_RRHH"] == "Estructural mínimo"
 ]
 
-if mes_sel == 0:
-    row_rrhh = df_rrhh[
-        df_rrhh["anio"] == int(anio_sel)
-    ]
+if df_rrhh.empty:
+    coste_rrhh = 0.0
 else:
-    row_rrhh = df_rrhh[
-        (df_rrhh["anio"] == int(anio_sel)) &
-        (df_rrhh["mes"] == int(mes_sel))
-    ]
+    coste_rrhh = 0.0
 
-coste_rrhh = (
-    float(row_rrhh["rrhh_total_eur"].sum())
-    if not row_rrhh.empty else 0.0
-)
+    for _, row in df_rrhh.iterrows():
+        salario_mensual = row["Bruto anual (€)"] / 12
+
+        if mes_sel == 0:
+            personas = sum(row[mes] for mes in MESES_ES.values())
+        else:
+            personas = row[MESES_ES[mes_sel]]
+
+        nomina = salario_mensual * personas
+        ss = nomina * 0.33
+
+        coste_rrhh += nomina + ss
 
 # ---------- GASTOS FIJOS ----------
 if not GASTOS_FILE.exists():
