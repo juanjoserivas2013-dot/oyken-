@@ -28,7 +28,7 @@ PUESTOS_FILE = Path("rrhh_puestos.csv")
 def cargar_puestos():
     if PUESTOS_FILE.exists():
         return pd.read_csv(PUESTOS_FILE)
-    return pd.DataFrame(columns=["Año", "Puesto", "Rol_RRHH", "Bruto anual (€)", *MESES])
+    return pd.DataFrame(columns=["Año", "Puesto", "Bruto anual (€)", *MESES])
 
 def guardar_puesto(registro: dict):
     df = cargar_puestos()
@@ -66,15 +66,6 @@ with st.form("alta_puesto", clear_on_submit=True):
         format="%.2f"
     )
 
-    rol_rrhh = st.selectbox(
-    "Rol del puesto (OYKEN)",
-    [
-        "Estructural mínimo",
-        "Estructural ampliable",
-        "Refuerzo operativo"
-    ]
-)
-
     st.markdown("**Necesidad mensual del puesto (personas)**")
     cols = st.columns(6)
     necesidad = {}
@@ -91,14 +82,12 @@ with st.form("alta_puesto", clear_on_submit=True):
     guardar = st.form_submit_button("Guardar puesto")
 
     if guardar and puesto.strip():
-       registro = {
-    "Año": anio_activo,
-    "Puesto": puesto.strip(),
-    "Rol_RRHH": rol_rrhh,
-    "Bruto anual (€)": float(bruto_anual),
-    **necesidad
-}
-
+        registro = {
+            "Año": anio_activo,
+            "Puesto": puesto.strip(),
+            "Bruto anual (€)": float(bruto_anual),
+            **necesidad
+        }
         guardar_puesto(registro)
         st.success(f"Puesto '{puesto}' guardado para {anio_activo}")
         st.rerun()
@@ -312,3 +301,4 @@ df_final = df_final.sort_values(["anio", "mes"])
 df_final.to_csv(RRHH_MENSUAL_FILE, index=False)
 
 st.success("RRHH económico consolidado correctamente.")
+
