@@ -163,6 +163,37 @@ with st.form("registro_gastos", clear_on_submit=True):
     with col2:
         categoria = st.selectbox("Categoría", CATEGORIAS)
 
+    submitted = st.form_submit_button("Registrar gasto")
+
+if submitted:
+
+    if not concepto:
+        st.warning("Debes introducir un concepto.")
+        st.stop()
+
+    if coste <= 0:
+        st.warning("El coste debe ser mayor que cero.")
+        st.stop()
+
+    nuevo = {
+        "Fecha": fecha.strftime("%d/%m/%Y"),
+        "Mes": fecha.strftime("%Y-%m"),
+        "Concepto": concepto,
+        "Categoria": categoria,
+        "Tipo_Gasto": tipo_rec,   # FIJO DESDE MATRIZ
+        "Rol_Gasto": rol_rec,     # FIJO DESDE MATRIZ
+        "Coste (€)": round(coste, 2)
+    }
+
+    st.session_state.gastos = pd.concat(
+        [st.session_state.gastos, pd.DataFrame([nuevo])],
+        ignore_index=True
+    )
+
+    st.session_state.gastos.to_csv(DATA_FILE, index=False)
+    st.success("Gasto registrado correctamente.")
+
+
     # =================================================
     # CLASIFICACIÓN ESTRUCTURAL SEGÚN MATRIZ OYKEN
     # =================================================
