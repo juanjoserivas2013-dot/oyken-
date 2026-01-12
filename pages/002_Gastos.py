@@ -210,9 +210,7 @@ if categoria in CATEGORIAS_RRHH_BLOQUEADAS:
         "Para evitar duplicidades y errores en el Breakeven, "
         "no puede registrarse manualmente aquí."
     )
-    st.stop()
-
-
+    
     # =================================================
     # CLASIFICACIÓN ESTRUCTURAL SEGÚN MATRIZ OYKEN
     # =================================================
@@ -255,7 +253,10 @@ if categoria in CATEGORIAS_RRHH_BLOQUEADAS:
         format="%.2f"
     )
 
-    submitted = st.form_submit_button("Registrar gasto")
+    submitted = st.form_submit_button(
+        "Registrar gasto",
+        disabled=rrhh_bloqueado
+    )
 
     if submitted:
 
