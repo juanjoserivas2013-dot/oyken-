@@ -16,6 +16,7 @@ st.divider()
 
 COSTE_PRODUCTO_FILE = Path("coste_producto.csv")
 RRHH_FILE = Path("rrhh_mensual.csv")
+RRHH_PUESTOS_FILE = Path(rrhh_puestos.csv")
 GASTOS_FILE = Path("gastos.csv")
 
 # =====================================================
