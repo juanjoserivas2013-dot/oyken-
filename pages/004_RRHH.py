@@ -27,8 +27,17 @@ PUESTOS_FILE = Path("rrhh_puestos.csv")
 
 def cargar_puestos():
     if PUESTOS_FILE.exists():
-        return pd.read_csv(PUESTOS_FILE)
-    return pd.DataFrame(columns=["Año", "Puesto", "Bruto anual (€)", *MESES])
+        df = pd.read_csv(PUESTOS_FILE)
+
+        # Compatibilidad retroactiva OYKEN
+        if "Rol_RRHH" not in df.columns:
+            df["Rol_RRHH"] = "Estructural mínimo"
+
+        return df
+
+    return pd.DataFrame(
+        columns=["Año", "Puesto", "Rol_RRHH", "Bruto anual (€)", *MESES]
+    )
 
 def guardar_puesto(registro: dict):
     df = cargar_puestos()
