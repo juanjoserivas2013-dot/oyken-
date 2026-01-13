@@ -173,25 +173,11 @@ with st.form("registro_gastos", clear_on_submit=True):
     c_tipo, c_rol = st.columns(2)
 
     with c_tipo:
-        tipo_gasto = st.selectbox(
-            "Tipo de gasto",
-            ["Fijo", "Variable"],
-            index=["Fijo", "Variable"].index(tipo_rec)
-        )
+    st.info(f"**Tipo de gasto:** {tipo_rec}")
 
     with c_rol:
-        rol_gasto = st.selectbox(
-            "Rol del gasto",
-            ["Estructural", "No estructural"],
-            index=["Estructural", "No estructural"].index(rol_rec)
-        )
+    st.info(f"**Rol del gasto:** {rol_rec}")
 
-    if tipo_gasto != tipo_rec or rol_gasto != rol_rec:
-        st.warning(
-            f"Según OYKEN esta categoría es **{tipo_rec} / {rol_rec}**.\n\n"
-            f"Motivo: {justificacion}\n\n"
-            f"Has decidido clasificarla como **{tipo_gasto} / {rol_gasto}**."
-        )
 
     concepto = st.text_input(
         "Concepto / Descripción",
