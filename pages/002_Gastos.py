@@ -208,8 +208,8 @@ with st.form("registro_gastos", clear_on_submit=True):
             "Mes": fecha.strftime("%Y-%m"),
             "Concepto": concepto,
             "Categoria": categoria,
-            "Tipo_Gasto": tipo_gasto,   # ⬅ OYKEN
-            "Rol_Gasto": rol_gasto,     # ⬅ OYKEN
+            "Tipo_Gasto": tipo_rec,   # ⬅ OYKEN
+            "Rol_Gasto": rol_rec,     # ⬅ OYKEN
             "Coste (€)": round(coste, 2)
         }
 
