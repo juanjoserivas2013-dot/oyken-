@@ -264,10 +264,6 @@ else:
     
 import calendar
 
-# =====================================================
-# BREAKEVEN OPERATIVO DIARIO
-# =====================================================
-
 st.divider()
 
 # =====================================================
@@ -327,6 +323,10 @@ else:
             "El margen de contribución es ≤ 0. "
             "La estructura no se sostiene con el nivel actual de costes variables."
         )
+
+# =====================================================
+# BREAKEVEN OPERATIVO DIARIO
+# =====================================================
 
 st.subheader("Breakeven operativo diario")
 
