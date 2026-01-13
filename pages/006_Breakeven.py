@@ -190,6 +190,11 @@ df_gastos["Coste (€)"] = pd.to_numeric(
     df_gastos["Coste (€)"], errors="coerce"
 ).fillna(0)
 
+# ---------- Normalizar fecha (CRÍTICO) ----------
+df_gastos["Fecha"] = pd.to_datetime(df_gastos["Fecha"], errors="coerce")
+df_gastos["anio"] = df_gastos["Fecha"].dt.year
+df_gastos["mes"] = df_gastos["Fecha"].dt.month
+
 # Solo gastos fijos estructurales
 gastos_fijos = df_gastos[
     (df_gastos["Tipo_Gasto"] == "Fijo") &
