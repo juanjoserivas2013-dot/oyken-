@@ -264,70 +264,11 @@ else:
     
 import calendar
 
-st.divider()
-
-# =====================================================
-# MARGEN DE CONTRIBUCIÓN REAL (OYKEN)
-# =====================================================
-
-st.divider()
-st.subheader("Margen de contribución real")
-st.caption(
-    "Capacidad real del negocio para cubrir la estructura fija, "
-    "una vez descontados los costes variables estructurales."
-)
-
-# ---------- Gastos variables estructurales ----------
-gastos_variables = df_gastos[
-    (df_gastos["Tipo_Gasto"] == "Variable") &
-    (df_gastos["Rol_Gasto"] == "Estructural")
-]
-
-# Filtrar por periodo
-if mes_sel == 0:
-    gastos_variables_periodo = gastos_variables[
-        gastos_variables["Año"] == int(anio_sel)
-    ]
-else:
-    gastos_variables_periodo = gastos_variables[
-        (gastos_variables["Año"] == int(anio_sel)) &
-        (gastos_variables["Mes"] == int(mes_sel))
-    ]
-
-gastos_variables_total = gastos_variables_periodo["Coste (€)"].sum()
-
-# ---------- Costes variables reales ----------
-costes_variables_reales = compras + gastos_variables_total
-
-# ---------- Contribución ----------
-contribucion_eur = ventas - costes_variables_reales
-
-if ventas <= 0:
-    st.warning("Las ventas del período son 0 €. No se puede calcular la contribución.")
-else:
-    margen_contribucion = contribucion_eur / ventas
-
-    # ---------- Visualización ----------
-    st.metric(
-        "Margen de contribución real",
-        f"{margen_contribucion:.2%}"
-    )
-
-    st.caption(
-        f"Contribución absoluta del período: "
-        f"{contribucion_eur:,.2f} €"
-    )
-
-    if margen_contribucion <= 0:
-        st.warning(
-            "El margen de contribución es ≤ 0. "
-            "La estructura no se sostiene con el nivel actual de costes variables."
-        )
-
 # =====================================================
 # BREAKEVEN OPERATIVO DIARIO
 # =====================================================
 
+st.divider()
 st.subheader("Breakeven operativo diario")
 
 if mes_sel == 0:
