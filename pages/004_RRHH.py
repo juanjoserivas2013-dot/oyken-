@@ -167,6 +167,83 @@ if not df_puestos_anio.empty:
 else:
     st.info("No hay estructuras de puestos para eliminar en este año.")
 
+# =====================================================
+# SELECTOR DE PERIODO · TOTALIZACIÓN ESTRUCTURAL RRHH
+# =====================================================
+
+st.divider()
+st.subheader("Estructura RRHH · Totalización por rol")
+
+# -----------------------------
+# Selector de periodo
+# -----------------------------
+
+PERIODOS = ["Año completo"] + MESES
+
+periodo_sel = st.selectbox(
+    "Periodo de cálculo",
+    PERIODOS,
+    index=0
+)
+
+# -----------------------------
+# Cálculo de costes
+# -----------------------------
+
+if not df_puestos_anio.empty:
+
+    def coste_puesto(row, periodo):
+        salario_mensual = row["Bruto anual (€)"] / 12
+
+        if periodo == "Año completo":
+            total_personas = sum(row[mes] for mes in MESES)
+            return salario_mensual * total_personas
+        else:
+            return salario_mensual * row[periodo]
+
+    df_calc = df_puestos_anio.copy()
+    df_calc["Coste"] = df_calc.apply(
+        lambda r: coste_puesto(r, periodo_sel),
+        axis=1
+    )
+
+    total_minimo = (
+        df_calc[df_calc["Rol_RRHH"] == "Estructural mínimo"]["Coste"].sum()
+    )
+    total_ampliable = (
+        df_calc[df_calc["Rol_RRHH"] == "Estructural ampliable"]["Coste"].sum()
+    )
+    total_refuerzo = (
+        df_calc[df_calc["Rol_RRHH"] == "Refuerzo operativo"]["Coste"].sum()
+    )
+
+    # -----------------------------
+    # Visualización en línea
+    # -----------------------------
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        st.metric(
+            "Estructural mínimo",
+            f"{total_minimo:,.0f} €"
+        )
+
+    with c2:
+        st.metric(
+            "Estructural ampliable",
+            f"{total_ampliable:,.0f} €"
+        )
+
+    with c3:
+        st.metric(
+            "Refuerzo operativo",
+            f"{total_refuerzo:,.0f} €"
+        )
+
+else:
+    st.info("No hay puestos definidos para calcular la estructura RRHH.")
+
 
 # =====================================================
 # BLOQUE 2 · COSTE DE PERSONAL (NÓMINA)
