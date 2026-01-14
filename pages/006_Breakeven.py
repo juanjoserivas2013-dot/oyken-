@@ -448,6 +448,43 @@ else:
     st.caption(
         "Fórmula: Costes fijos estructurales ÷ Margen de contribución real"
     )
+
+# =====================================================
+# BREAKEVEN REAL DIARIO
+# =====================================================
+
+st.divider()
+st.subheader("Breakeven real diario")
+
+if mes_sel == 0:
+    st.info(
+        "El breakeven real diario se muestra solo cuando se selecciona "
+        "un mes concreto."
+    )
+else:
+    dias_mes = calendar.monthrange(int(anio_sel), int(mes_sel))[1]
+
+    breakeven_real_diario = breakeven_real / dias_mes
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+        st.metric(
+            "Breakeven real diario",
+            f"{breakeven_real_diario:,.2f} € / día"
+        )
+
+    with c2:
+        st.metric(
+            "Días del mes",
+            dias_mes
+        )
+
+    st.caption(
+        "Distribución homogénea del breakeven real mensual "
+        "en los días naturales del mes seleccionado."
+    )
+
 # =====================================================
 # VALIDACIÓN · RESULTADO EN BREAKEVEN REAL
 # =====================================================
