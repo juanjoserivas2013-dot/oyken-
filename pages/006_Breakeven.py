@@ -333,7 +333,8 @@ gastos_variables_total = gastos_variables_periodo["Coste (€)"].sum()
 costes_variables_reales = (
     compras
     + gastos_variables_total
-    + rrhh_variable
+    + RRHH estructural ampliable
+    + RRHH refuerzo operativo
 )
 
 # ---------- Contribución ----------
