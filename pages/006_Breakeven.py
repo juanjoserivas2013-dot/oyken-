@@ -305,17 +305,19 @@ st.divider()
 st.subheader("Margen de contribución real")
 st.caption(
     "Capacidad real del negocio para cubrir la estructura fija, "
-    "una vez descontados los costes variables reales del negocio "
-    "(coste de producto + gastos variables estructurales)."
+    "una vez descontados los costes variables reales "
+    "(coste de producto + gastos variables + RRHH variable)."
 )
 
-# ---------- Gastos variables estructurales ----------
+# =====================================================
+# 1. GASTOS VARIABLES (NO RRHH)
+# =====================================================
+
 gastos_variables = df_gastos[
     (df_gastos["Tipo_Gasto"] == "Variable") &
     (df_gastos["Rol_Gasto"] == "Estructural")
 ]
 
-# ---------- Filtrar por periodo (OYKEN) ----------
 if mes_sel == 0:
     gastos_variables_periodo = gastos_variables[
         gastos_variables["Mes"].str.startswith(str(anio_sel))
@@ -328,10 +330,59 @@ else:
 
 gastos_variables_total = gastos_variables_periodo["Coste (€)"].sum()
 
-# ---------- Costes variables reales ----------
-costes_variables_reales = compras + gastos_variables_total
+# =====================================================
+# 2. RRHH VARIABLE (DESDE ESTRUCTURA RRHH)
+#    = Estructural ampliable + Refuerzo operativo
+# =====================================================
 
-# ---------- Contribución ----------
+if not RRHH_PUESTOS_FILE.exists():
+    st.error("No existe la estructura de RRHH.")
+    st.stop()
+
+df_rrhh_full = pd.read_csv(RRHH_PUESTOS_FILE)
+
+# Filtrar año
+df_rrhh_full = df_rrhh_full[df_rrhh_full["Año"] == int(anio_sel)]
+
+# Solo RRHH variable
+df_rrhh_variable = df_rrhh_full[
+    df_rrhh_full["Rol_RRHH"].isin([
+        "Estructural ampliable",
+        "Refuerzo operativo"
+    ])
+]
+
+rrhh_variable_total = 0.0
+
+if not df_rrhh_variable.empty:
+
+    for _, row in df_rrhh_variable.iterrows():
+        salario_mensual = row["Bruto anual (€)"] / 12
+
+        if mes_sel == 0:
+            personas = sum(row[mes] for mes in MESES_ES.values())
+        else:
+            personas = row[MESES_ES[mes_sel]]
+
+        nomina = salario_mensual * personas
+        ss = nomina * 0.33
+
+        rrhh_variable_total += nomina + ss
+
+# =====================================================
+# 3. COSTES VARIABLES REALES
+# =====================================================
+
+costes_variables_reales = (
+    compras +
+    gastos_variables_total +
+    rrhh_variable_total
+)
+
+# =====================================================
+# 4. CONTRIBUCIÓN
+# =====================================================
+
 contribucion_eur = ventas - costes_variables_reales
 
 if ventas <= 0:
@@ -346,7 +397,7 @@ else:
 
     st.caption(
         f"Contribución absoluta del período: {contribucion_eur:,.2f} € · "
-        f"Fórmula: Ventas − (Coste de producto + gastos variables estructurales)"
+        "Fórmula: Ventas − (Coste de producto + Gastos variables + RRHH variable)"
     )
 
     if margen_contribucion <= 0:
@@ -354,3 +405,19 @@ else:
             "El margen de contribución es ≤ 0. "
             "La estructura no se sostiene con el nivel actual de costes variables."
         )
+
+# =====================================================
+# 5. DESGLOSE AUDITABLE
+# =====================================================
+
+st.markdown("#### Desglose de costes variables")
+
+st.dataframe(
+    pd.DataFrame([
+        {"Concepto": "Coste de producto", "Coste (€)": compras},
+        {"Concepto": "Gastos variables", "Coste (€)": gastos_variables_total},
+        {"Concepto": "RRHH variable", "Coste (€)": rrhh_variable_total},
+    ]),
+    hide_index=True,
+    use_container_width=True
+)
