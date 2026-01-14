@@ -16,7 +16,7 @@ a partir de su realidad diaría.
 
 No sustituye sistemas ya existentes: Los interpreta y los convierte en criterio accionable.
 
-PROXIMOS MODULOS: Margen Bruto-Ebitda Real-Escenarios ... 
+PROXIMOS MODULOS: Escenarios · OYKEN Core · Flow Throw ... 
 """)
            
 st.markdown("Selecciona un módulo en el menú lateral")
