@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-import calendar
 
 # =====================================================
 # CABECERA
@@ -136,7 +135,6 @@ st.metric("Margen bruto", f"{margen_bruto:.2%}")
 st.caption(
     "Fuente: Compras y Ventas mensuales · "
     "Cálculo directo (sin CSV intermedio)"
-    "1 - (CMV / V)"
 )
 
 st.divider()
@@ -191,11 +189,6 @@ df_gastos = pd.read_csv(GASTOS_FILE)
 df_gastos["Coste (€)"] = pd.to_numeric(
     df_gastos["Coste (€)"], errors="coerce"
 ).fillna(0)
-
-# ---------- Normalizar fecha (CRÍTICO) ----------
-df_gastos["Fecha"] = pd.to_datetime(df_gastos["Fecha"], errors="coerce")
-df_gastos["anio"] = df_gastos["Fecha"].dt.year
-df_gastos["mes"] = df_gastos["Fecha"].dt.month
 
 # Solo gastos fijos estructurales
 gastos_fijos = df_gastos[
@@ -268,93 +261,8 @@ else:
     st.caption(
         "Fórmula: Costes fijos estructurales / Margen bruto estructural"
     )
-
-# =====================================================
-# MARGEN DE CONTRIBUCIÓN REAL (OYKEN)
-# =====================================================
-
-st.divider()
-st.subheader("Margen de contribución real")
-st.caption(
-    "Capacidad real del negocio para cubrir la estructura fija, "
-    "una vez descontados los costes variables estructurales."
-)
-
-# ---------- Gastos variables estructurales ----------
-gastos_variables = df_gastos[
-    (df_gastos["Tipo_Gasto"] == "Variable") &
-    (df_gastos["Rol_Gasto"] == "Estructural")
-]
-
-# Filtrar por periodo
-if mes_sel == 0:
-    gastos_variables_periodo = gastos_variables[
-        gastos_variables["anio"] == int(anio_sel)
-    ]
-else:
-    gastos_variables_periodo = gastos_variables[
-        (gastos_variables["anio"] == int(anio_sel)) &
-        (gastos_variables["mes"] == int(mes_sel))
-    ]
-
-gastos_variables_total = gastos_variables_periodo["Coste (€)"].sum()
-
-# ---------- RRHH variable / refuerzos ----------
-df_rrhh_var = pd.read_csv(RRHH_FILE)
-
-df_rrhh_var["anio"] = df_rrhh_var["anio"].astype(int)
-df_rrhh_var["mes"] = df_rrhh_var["mes"].astype(int)
-
-rrhh_variable = df_rrhh_var[
-    df_rrhh_var["Rol_RRHH"] == "Refuerzo operativo"
-]
-
-if mes_sel == 0:
-    rrhh_variable_periodo = rrhh_variable[
-        rrhh_variable["anio"] == int(anio_sel)
-    ]
-else:
-    rrhh_variable_periodo = rrhh_variable[
-        (rrhh_variable["anio"] == int(anio_sel)) &
-        (rrhh_variable["mes"] == int(mes_sel))
-    ]
-
-rrhh_variable_total = rrhh_variable_periodo["Coste_Total_Empresa (€)"].sum()
-
-
-# ---------- Costes variables reales ----------
-costes_variables_reales = (
-    compras +
-    gastos_variables_total +
-    rrhh_variable_total
-)
-
-
-# ---------- Contribución ----------
-contribucion_eur = ventas - costes_variables_reales
-
-if ventas <= 0:
-    st.warning("Las ventas del período son 0 €. No se puede calcular la contribución.")
-else:
-    margen_contribucion = contribucion_eur / ventas
-
-    # ---------- Visualización ----------
-    st.metric(
-        "Margen de contribución real",
-        f"{margen_contribucion:.2%}"
-    )
-
-st.caption(
-    f"Contribución absoluta del período: "
-    f"{contribucion_eur:,.2f} € · "
-    f"Fórmula: Ventas - (Coste de producto + Gastos variables estructurales + RRHH variable)"
-)
-
-    if margen_contribucion <= 0:
-        st.warning(
-            "El margen de contribución es ≤ 0. "
-            "La estructura no se sostiene con el nivel actual de costes variables."
-        )
+    
+import calendar
 
 # =====================================================
 # BREAKEVEN OPERATIVO DIARIO
