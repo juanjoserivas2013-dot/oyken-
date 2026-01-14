@@ -448,3 +448,20 @@ else:
     st.caption(
         "Fórmula: Costes fijos estructurales ÷ Margen de contribución real"
     )
+# =====================================================
+# VALIDACIÓN · RESULTADO EN BREAKEVEN REAL
+# =====================================================
+
+st.markdown("#### Validación del punto de equilibrio")
+
+costes_variables_impl = breakeven_real * (1 - margen_contribucion)
+resultado_check = breakeven_real - costes_variables_impl - costes_fijos_totales
+
+st.metric(
+    "Resultado en breakeven real",
+    f"{resultado_check:,.2f} €"
+)
+
+st.caption(
+    "Comprobación: Ventas − Costes variables − Costes fijos = 0"
+)
