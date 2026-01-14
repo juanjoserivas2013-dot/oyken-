@@ -314,15 +314,15 @@ gastos_variables = df_gastos[
     (df_gastos["Rol_Gasto"] == "Estructural")
 ]
 
-# Filtrar por periodo
+# ---------- Filtrar gastos por periodo (OYKEN) ----------
 if mes_sel == 0:
     gastos_variables_periodo = gastos_variables[
-        gastos_variables["anio"] == int(anio_sel)
+        gastos_variables["Mes"].str.startswith(str(anio_sel))
     ]
 else:
+    mes_clave = f"{anio_sel}-{mes_sel:02d}"
     gastos_variables_periodo = gastos_variables[
-        (gastos_variables["anio"] == int(anio_sel)) &
-        (gastos_variables["mes"] == int(mes_sel))
+        gastos_variables["Mes"] == mes_clave
     ]
 
 gastos_variables_total = gastos_variables_periodo["Coste (€)"].sum()
