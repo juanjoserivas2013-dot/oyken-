@@ -302,6 +302,8 @@ else:
 # MARGEN DE CONTRIBUCIÓN REAL (OYKEN)
 # =====================================================
 
+import pandas as pd
+
 st.divider()
 st.subheader("Margen de contribución real")
 st.caption(
@@ -310,9 +312,21 @@ st.caption(
     "(producto, gastos variables y RRHH variables)."
 )
 
-# -----------------------------------------------------
+# =====================================================
+# CONSTANTES RRHH (MISMAS QUE EN EL MÓDULO RRHH)
+# =====================================================
+
+MESES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+]
+
+SS_EMPRESA = 0.33
+RRHH_PUESTOS_FILE = Path("rrhh_puestos.csv")
+
+# =====================================================
 # GASTOS VARIABLES ESTRUCTURALES
-# -----------------------------------------------------
+# =====================================================
 
 gastos_variables = df_gastos[
     (df_gastos["Tipo_Gasto"] == "Variable") &
@@ -320,42 +334,48 @@ gastos_variables = df_gastos[
 ]
 
 if mes_sel == 0:
-    gastos_variables_periodo = gastos_variables[
-        gastos_variables["Mes"].str.startswith(str(anio_sel))
-    ]
+    gastos_variables_total = gastos_variables[
+        gastos_variables["anio"] == anio_sel
+    ]["Coste (€)"].sum()
 else:
-    mes_clave = f"{anio_sel}-{mes_sel:02d}"
-    gastos_variables_periodo = gastos_variables[
-        gastos_variables["Mes"] == mes_clave
-    ]
+    gastos_variables_total = gastos_variables[
+        (gastos_variables["anio"] == anio_sel) &
+        (gastos_variables["mes"] == mes_sel)
+    ]["Coste (€)"].sum()
 
-gastos_variables_total = gastos_variables_periodo["Coste (€)"].sum()
-
-# -----------------------------------------------------
+# =====================================================
 # RRHH VARIABLES (ESTRUCTURAL AMPLIABLE + REFUERZO OPERATIVO)
-# -----------------------------------------------------
+# =====================================================
 
-rrhh_variables = df_rrhh[
-    df_rrhh["Rol_RRHH"].isin([
-        "Estructural ampliable",
-        "Refuerzo operativo"
-    ])
-]
-
-if mes_sel == 0:
-    rrhh_variables_periodo = rrhh_variables[
-        rrhh_variables["Mes"].str.startswith(str(anio_sel))
-    ]
+if not RRHH_PUESTOS_FILE.exists():
+    rrhh_variables_total = 0.0
 else:
-    rrhh_variables_periodo = rrhh_variables[
-        rrhh_variables["Mes"] == mes_clave
+    df_rrhh = pd.read_csv(RRHH_PUESTOS_FILE)
+    df_rrhh = df_rrhh[df_rrhh["Año"] == anio_sel]
+
+    df_rrhh_variables = df_rrhh[
+        df_rrhh["Rol_RRHH"].isin([
+            "Estructural ampliable",
+            "Refuerzo operativo"
+        ])
     ]
 
-rrhh_variables_total = rrhh_variables_periodo["Coste Empresa (€)"].sum()
+    rrhh_variables_total = 0.0
 
-# -----------------------------------------------------
+    for _, row in df_rrhh_variables.iterrows():
+        salario_mensual = row["Bruto anual (€)"] / 12
+
+        if mes_sel == 0:
+            personas = sum(row[mes] for mes in MESES)
+        else:
+            personas = row[MESES[mes_sel - 1]]
+
+        coste = salario_mensual * personas * (1 + SS_EMPRESA)
+        rrhh_variables_total += coste
+
+# =====================================================
 # COSTES VARIABLES REALES
-# -----------------------------------------------------
+# =====================================================
 
 costes_variables_reales = (
     compras
@@ -363,21 +383,23 @@ costes_variables_reales = (
     + rrhh_variables_total
 )
 
-# -----------------------------------------------------
+# =====================================================
 # CONTRIBUCIÓN Y MARGEN
-# -----------------------------------------------------
+# =====================================================
 
 contribucion_eur = ventas - costes_variables_reales
 
 if ventas > 0:
     margen_contribucion = contribucion_eur / ventas
+else:
+    margen_contribucion = 0.0
 
-    st.metric(
-        "Margen de contribución real",
-        f"{margen_contribucion:.2%}"
-    )
+st.metric(
+    "Margen de contribución real",
+    f"{margen_contribucion:.2%}"
+)
 
-    st.caption(
-        f"Contribución absoluta del período: {contribucion_eur:,.2f} € · "
-        "Fórmula: Ventas − (Producto + Gastos variables + RRHH variables)"
-    )
+st.caption(
+    f"Contribución absoluta del período: {contribucion_eur:,.2f} € · "
+    "Fórmula: Ventas − (Producto + Gastos variables + RRHH variables)"
+)
