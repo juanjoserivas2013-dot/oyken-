@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
+import calendar
 
 # =====================================================
 # CABECERA
@@ -261,8 +262,6 @@ else:
     st.caption(
         "Fórmula: Costes fijos estructurales / Margen bruto estructural"
     )
-    
-import calendar
 
 # =====================================================
 # BREAKEVEN OPERATIVO DIARIO
