@@ -267,3 +267,47 @@ with c2:
         value=0.0
     )
 
+# =====================================================
+# COMPARACIÓN · REAL vs BUDGET
+# =====================================================
+
+st.divider()
+st.subheader("Resultado vs Objetivo")
+
+# Valores reales (ya calculados en la página)
+ventas_real = base["ventas_total_eur"].sum()
+ebitda_real = base["ebitda_ajustado_eur"].sum()
+
+c1, c2 = st.columns(2)
+
+with c1:
+    if budget_ventas > 0:
+        delta_ventas = ventas_real - budget_ventas
+        st.metric(
+            "Ventas",
+            f"{ventas_real:,.2f} €",
+            delta=f"{delta_ventas:,.2f} €"
+        )
+    else:
+        st.metric(
+            "Ventas",
+            f"{ventas_real:,.2f} €",
+            help="Sin objetivo de ventas definido"
+        )
+
+with c2:
+    if budget_ebitda > 0:
+        delta_ebitda = ebitda_real - budget_ebitda
+        st.metric(
+            "EBITDA",
+            f"{ebitda_real:,.2f} €",
+            delta=f"{delta_ebitda:,.2f} €"
+        )
+    else:
+        st.metric(
+            "EBITDA",
+            f"{ebitda_real:,.2f} €",
+            help="Sin objetivo de EBITDA definido"
+        )
+
+
