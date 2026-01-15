@@ -80,6 +80,31 @@ with c2:
     )
 
 # =========================
+# BUDGET · INPUT (ÚNICO MANUAL)
+# =========================
+
+st.divider()
+st.subheader("Objetivo (Budget)")
+
+c1, c2 = st.columns(2)
+
+with c1:
+    budget_ventas = st.number_input(
+        "Ventas objetivo (€)",
+        min_value=0.0,
+        step=500.0,
+        value=0.0
+    )
+
+with c2:
+    budget_ebitda = st.number_input(
+        "EBITDA objetivo (€)",
+        min_value=0.0,
+        step=250.0,
+        value=0.0
+    )
+
+# =========================
 # BREAKEVEN · LECTURA CANÓNICA
 # =========================
 
