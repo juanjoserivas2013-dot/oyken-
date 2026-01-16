@@ -359,6 +359,7 @@ st.markdown("### Coherencia del objetivo")
 # Variables estructurales (ya calculadas en Breakeven)
 be_real = float(be["breakeven_real_eur"])
 brecha = float(be["brecha_operativa_eur"])
+mc = float(be["margen_contribucion_real_pct"])
 
 # Budget introducido por el usuario
 ventas_objetivo = budget_ventas
