@@ -311,6 +311,60 @@ with c2:
         )
 
 # =====================================================
+# MÉTRICA OYKEN · ABSORCIÓN DE BRECHA OPERATIVA
+# =====================================================
+
+st.divider()
+st.markdown("### Coherencia del objetivo")
+
+# Variables estructurales (ya calculadas en Breakeven)
+be_real = float(be["breakeven_real_eur"])
+brecha = float(be["brecha_operativa_eur"])
+
+# Budget introducido por el usuario
+ventas_objetivo = budget_ventas
+
+# Cálculo absorción de brecha
+if brecha > 0:
+    absorcion_raw = (ventas_objetivo - be_real) / brecha
+    absorcion = max(0, absorcion_raw) * 100
+else:
+    absorcion = None
+
+# Visualización
+if absorcion is None:
+    st.info(
+        "La absorción de brecha no se puede calcular porque "
+        "el modelo no presenta brecha operativa."
+    )
+else:
+    st.metric(
+        "Absorción de brecha operativa",
+        f"{absorcion:.0f} %",
+        help=(
+            "Indica qué parte de la ineficiencia estructural del negocio "
+            "está intentando compensar el objetivo mediante mayores ventas."
+        )
+    )
+
+    # Lectura OYKEN (no autoritaria)
+    if absorcion < 30:
+        st.caption(
+            "Objetivo de perfil sostenible. "
+            "Prima la estabilidad sobre la optimización."
+        )
+    elif absorcion < 80:
+        st.caption(
+            "Objetivo de perfil eficiente. "
+            "Exige mejorar la operación sin forzar el modelo."
+        )
+    else:
+        st.caption(
+            "Objetivo de perfil exigente. "
+            "Requiere disciplina operativa y control total."
+        )
+
+# =====================================================
 # LECTURA DEL OBJETIVO · REFERENCIAS ESTRUCTURALES
 # =====================================================
 
