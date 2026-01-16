@@ -320,7 +320,7 @@ st.markdown("### Lectura económica del objetivo")
 if budget_ventas > 0:
     ebitda_esperado = max(
         0,
-        (budget_ventas - be_real) * margen_contribucion
+        (budget_ventas - breakeven_real) * margen_contribucion
     )
 
     delta_vs_objetivo = ebitda_esperado - budget_ebitda if budget_ebitda > 0 else None
