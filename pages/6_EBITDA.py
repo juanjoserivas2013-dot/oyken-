@@ -242,73 +242,77 @@ with c2:
         f"{be['margen_contribucion_real_pct']:.2%}"
     )
 
-# =========================
-# BUDGET · INPUT (ÚNICO MANUAL)
-# =========================
-
-st.divider()
-st.subheader("Objetivo (Budget)")
-
-c1, c2 = st.columns(2)
-
-with c1:
-    budget_ventas = st.number_input(
-        "Ventas objetivo (€)",
-        min_value=0.0,
-        step=500.0,
-        value=0.0
-    )
-
-with c2:
-    budget_ebitda = st.number_input(
-        "EBITDA objetivo (€)",
-        min_value=0.0,
-        step=250.0,
-        value=0.0
-    )
-
 # =====================================================
-# COMPARACIÓN · REAL vs BUDGET
+# SIMULADOR DE ESCENARIO · ABSORCIÓN DE BRECHA
 # =====================================================
 
 st.divider()
-st.subheader("Resultado vs Objetivo")
+st.subheader("Simulador de escenario operativo")
 
-# Valores reales (ya calculados en la página)
-ventas_real = base["ventas_total_eur"].sum()
-ebitda_real = base["ebitda_ajustado_eur"].sum()
+st.caption(
+    "Explora qué ocurre al absorber progresivamente la brecha operativa real. "
+    "Las ventas y el EBITDA se calculan automáticamente según tu estructura."
+)
 
-c1, c2 = st.columns(2)
+absorcion = st.slider(
+    "Nivel de absorción de brecha operativa",
+    min_value=0,
+    max_value=120,
+    value=50,
+    step=5,
+    format="%d %%"
+)
+
+ratio = absorcion / 100
+
+# Cálculos estructurales
+ventas_objetivo = be_real + (brecha * ratio)
+ebitda_esperado = brecha * ratio
+
+# Clasificación de zona
+if ratio < 0.5:
+    zona = "🟢 Sostenible"
+    riesgo = "Bajo"
+    mensaje = (
+        "El negocio opera con colchón limitado. "
+        "No absorbe toda la brecha, pero mantiene estabilidad."
+    )
+elif ratio < 0.7:
+    zona = "🟡 Eficiente"
+    riesgo = "Controlado"
+    mensaje = (
+        "Zona óptima. Se absorbe gran parte de la brecha "
+        "con equilibrio entre resultado y riesgo."
+    )
+elif ratio <= 1:
+    zona = "🔴 Exigente"
+    riesgo = "Alto"
+    mensaje = (
+        "Se absorbe prácticamente toda la brecha operativa. "
+        "Requiere disciplina total y control diario."
+    )
+else:
+    zona = "⚠️ Forzado"
+    riesgo = "Muy alto"
+    mensaje = (
+        "El escenario exige más resultado del que la estructura permite. "
+        "Riesgo elevado de ruptura operativa."
+    )
+
+# Visual
+c1, c2, c3 = st.columns(3)
 
 with c1:
-    if budget_ventas > 0:
-        delta_ventas = ventas_real - budget_ventas
-        st.metric(
-            "Ventas",
-            f"{ventas_real:,.2f} €",
-            delta=f"{delta_ventas:,.2f} €"
-        )
-    else:
-        st.metric(
-            "Ventas",
-            f"{ventas_real:,.2f} €",
-            help="Sin objetivo de ventas definido"
-        )
+    st.metric("Ventas objetivo", f"{ventas_objetivo:,.0f} €")
 
 with c2:
-    if budget_ebitda > 0:
-        delta_ebitda = ebitda_real - budget_ebitda
-        st.metric(
-            "EBITDA",
-            f"{ebitda_real:,.2f} €",
-            delta=f"{delta_ebitda:,.2f} €"
-        )
-    else:
-        st.metric(
-            "EBITDA",
-            f"{ebitda_real:,.2f} €",
-            help="Sin objetivo de EBITDA definido"
-        )
+    st.metric("EBITDA esperado", f"{ebitda_esperado:,.0f} €")
+
+with c3:
+    st.metric("Zona operativa", zona)
+
+st.caption(f"Riesgo estructural: **{riesgo}**")
+st.info(mensaje)
 
 # =====================================================
 # LECTURA DEL OBJETIVO · REFERENCIAS ESTRUCTURALES
