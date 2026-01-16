@@ -254,6 +254,19 @@ except Exception:
     st.error("No se pueden calcular las variables estructurales (Breakeven / Brecha).")
     st.stop()
 
+# =========================
+# POSICIÓN REAL DEL NEGOCIO (ABSORCIÓN DE BRECHA)
+# =========================
+
+if brecha > 0:
+    ratio_real = ebitda_real / brecha
+else:
+    ratio_real = 0
+
+absorcion_real_pct = round(ratio_real * 100)
+
+# Normalización para el slider (0 % – 120 %)
+absorcion_real_pct = max(min(absorcion_real_pct, 120), 0)
 
 # =====================================================
 # SIMULADOR DE ESCENARIO · ABSORCIÓN DE BRECHA
