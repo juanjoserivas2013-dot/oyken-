@@ -361,6 +361,14 @@ be_real = float(be["breakeven_real_eur"])
 brecha = float(be["brecha_operativa_eur"])
 mc = float(be["margen_contribucion_real_pct"])
 
+if mc <= 0:
+    st.warning(
+        "El margen de contribución real es ≤ 0. "
+        "No se puede interpretar el objetivo con la estructura actual."
+    )
+    st.stop()
+
+
 # Budget introducido por el usuario
 ventas_objetivo = budget_ventas
 
