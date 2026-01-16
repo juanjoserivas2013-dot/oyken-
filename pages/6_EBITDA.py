@@ -328,6 +328,36 @@ st.caption(f"Riesgo estructural: **{riesgo}**")
 st.info(mensaje)
 
 # =====================================================
+# COMPARATIVA · ESCENARIO vs REALIDAD
+# =====================================================
+
+st.divider()
+st.subheader("Comparativa con la realidad actual")
+
+# Diferencias
+delta_ventas = ventas_real - ventas_objetivo
+delta_ebitda = ebitda_real - ebitda_esperado
+
+c1, c2 = st.columns(2)
+
+with c1:
+    st.metric(
+        "Ventas",
+        f"{ventas_real:,.0f} €",
+        delta=f"{delta_ventas:+,.0f} €",
+        help="Comparación entre ventas reales y ventas objetivo del escenario"
+    )
+
+with c2:
+    st.metric(
+        "EBITDA",
+        f"{ebitda_real:,.0f} €",
+        delta=f"{delta_ebitda:+,.0f} €",
+        help="Comparación entre EBITDA real y EBITDA esperado según estructura"
+    )
+
+
+# =====================================================
 # LECTURA DEL OBJETIVO · REFERENCIAS ESTRUCTURALES
 # =====================================================
 
