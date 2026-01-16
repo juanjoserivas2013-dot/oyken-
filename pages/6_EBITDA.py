@@ -405,45 +405,86 @@ else:
         )
 
 # =====================================================
-# LECTURA DEL OBJETIVO · REFERENCIAS ESTRUCTURALES
+# LECTURA ECONÓMICA DEL OBJETIVO · OYKEN
 # =====================================================
 
 st.divider()
-st.subheader("Lectura del objetivo según tu estructura actual")
+st.subheader("Lectura económica del objetivo")
 
-# Variables base
-ventas_odjetivo = budget_ventas
+# -------------------------
+# VARIABLES CANÓNICAS
+# -------------------------
+
+# Input del usuario (UI)
+ventas_objetivo = float(budget_ventas)
+
+# Datos estructurales desde Breakeven
 be_real = float(be["breakeven_real_eur"])
 brecha = float(be["brecha_operativa_eur"])
 mc = float(be["margen_contribucion_real_pct"])
 
-# Escenarios
-ventas_sostenible = be_real
+# -------------------------
+# VALIDACIONES BÁSICAS
+# -------------------------
 
+if ventas_objetivo <= 0:
+    st.info(
+        "Introduce un objetivo de ventas para obtener la lectura económica "
+        "según tu estructura actual."
+    )
+    st.stop()
+
+if mc <= 0:
+    st.warning(
+        "El margen de contribución es ≤ 0. "
+        "No se puede estimar EBITDA con la estructura actual."
+    )
+    st.stop()
+
+# -------------------------
+# EBITDA ESTIMADO SEGÚN OBJETIVO
+# -------------------------
+
+ebitda_estimado = (ventas_objetivo - be_real) * mc
+
+# No permitimos EBITDA negativo en lectura
+ebitda_estimado = max(0, ebitda_estimado)
+
+# -------------------------
+# ESCENARIOS OYKEN
+# -------------------------
+
+# 1️⃣ Sostenible
+ventas_sostenible = be_real
+ebitda_sostenible = 0.0
+
+# 2️⃣ Eficiente (absorbe 50–70 % de la brecha)
 ventas_eficiente_min = be_real + (brecha * 0.5)
 ventas_eficiente_max = be_real + (brecha * 0.7)
-
-ventas_exigente = be_real + brecha
 
 ebitda_eficiente_min = (ventas_eficiente_min - be_real) * mc
 ebitda_eficiente_max = (ventas_eficiente_max - be_real) * mc
 
-ebitda_exigente = brecha  # interpretación directa OYKEN
+# 3️⃣ Exigente (absorbe 100 % de la brecha)
+ventas_exigente = be_real + brecha
+ebitda_exigente = brecha * mc
 
-# ---------- MENSAJE 1 · SOSTENIBLE ----------
+# -------------------------
+# MENSAJES OYKEN
+# -------------------------
+
 st.markdown(
     f"""
 <small>
 <strong>🟢 Objetivo sostenible · Equilibrio real</strong><br>
 Ventas ≈ <strong>{ventas_sostenible:,.0f} €</strong><br>
-EBITDA esperado ≈ <strong>0 €</strong><br>
+EBITDA esperado ≈ <strong>{ebitda_sostenible:,.0f} €</strong><br>
 Mantiene el negocio en equilibrio real, sin margen para absorber desviaciones.
 </small>
 """,
     unsafe_allow_html=True
 )
 
-# ---------- MENSAJE 2 · EFICIENTE ----------
 st.markdown(
     f"""
 <small>
@@ -456,7 +497,6 @@ Absorbe parte de la brecha operativa y genera beneficio de forma estable.
     unsafe_allow_html=True
 )
 
-# ---------- MENSAJE 3 · EXIGENTE ----------
 st.markdown(
     f"""
 <small>
@@ -468,6 +508,5 @@ Requiere disciplina operativa total; cualquier desviación impacta directamente.
 """,
     unsafe_allow_html=True
 )
-
 
 
